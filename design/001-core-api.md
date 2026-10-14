@@ -2,9 +2,9 @@
 title: "Core API"
 description: "One Go API over Claude Code and Codex: cloudagent.New returns an AgentRuntime, Turn returns a handle with typed canonical Messages, a blocking Result, and Terminate; harness homes hold the only copy of conversation data."
 number: "001"
-status: partial
+status: current
 supersedes: ""
-related: []
+related: ["002"]
 last_verified: "2026-10-14"
 ---
 
@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented, verified offline against fixtures recorded from the pinned CLIs, and verified against the pinned CLIs by the real CLI tests of [Testing](#testing). The `glob`, `grep`, `web_fetch`, `web_search`, and `mcp` rows, Codex `reasoning`, and Codex `imageView` have no recorded scenario yet.
+Current. Everything this document describes is implemented, verified offline against fixtures recorded from the pinned CLIs, and verified against the pinned CLIs by the real CLI tests of [Testing](#testing). The `glob` and `grep` rows on Claude Code, the `web_fetch`, `web_search`, and `mcp` rows, Codex `reasoning`, and Codex `imageView` are implemented but have no recorded scenario; [design 002](002-testing.md#open-questions) tracks them.
 
 ## Why
 
@@ -29,7 +29,7 @@ Callers need one object model for an agent, a turn, and the messages a turn prod
 3. `turn.Messages()` yields complete, typed canonical messages; `turn.Result()` blocks for the outcome; `turn.Terminate()` stops the turn gracefully.
 4. `agent.Close()` stops any active turn and releases the harness process.
 5. Harnesses run without permission prompts.
-6. Conversation data lives only in the harness home (`~/.claude`, `~/.codex`, or `Options.Home`). `~/.cloudagent` stores index relations that point into it.
+6. Conversation data lives only in the harness home (`Options.Home`, or the harness's default such as `~/.claude` or `~/.codex`). `~/.cloudagent` stores index relations that point into it.
 
 This version does not provide streaming deltas, hooks, custom tools, configurable permissions, rollback, fork, resume of a previous agent, or remote execution. See [Non-Goals](#non-goals).
 
@@ -132,7 +132,7 @@ const (
 type Options struct {
 	Model   string // empty selects the harness's default model
 	WorkDir string // required; the harness's working directory
-	Home    string // harness home; empty selects ~/.claude or ~/.codex
+	Home    string // harness home; empty keeps the harness's default
 }
 
 func New(h Harness, opts Options) (*AgentRuntime, error)
@@ -140,7 +140,7 @@ func New(h Harness, opts Options) (*AgentRuntime, error)
 
 `New` fails when the harness is unknown, `WorkDir` is empty or not a directory, or the index entry cannot be written. It does not check that the harness CLI is installed; that surfaces as a start error from the first `Turn`.
 
-`Home` maps to `CLAUDE_CONFIG_DIR` for Claude Code and to `CODEX_HOME` for Codex. It selects the credentials, settings, and transcript store the harness uses, so distinct homes isolate agents from each other.
+`Home` maps to `CLAUDE_CONFIG_DIR` for Claude Code and to `CODEX_HOME` for Codex. It selects the credentials, settings, and transcript store the harness uses, so distinct homes isolate agents from each other. An empty `Home` leaves the variable as the process inherited it, so the harness uses its own default: the inherited `CLAUDE_CONFIG_DIR` or `CODEX_HOME`, otherwise `~/.claude` or `~/.codex`. Read-back resolves the home the same way.
 
 ### AgentRuntime
 
@@ -168,7 +168,7 @@ func (t *Turn) Terminate() error
 
 type Result struct {
 	TurnID    string
-	FinalText string // text of the last assistant message
+	FinalText string // text of the last top-level assistant message (empty ParentToolUseID)
 	Usage     Usage
 }
 
@@ -269,13 +269,13 @@ Each `ToolName` constant is `ToolName` followed by the name in camel case (`Tool
 | `web_fetch` | `WebFetchInput{URL, Prompt}` | `TextOutput{Text}` | `WebFetch` | — |
 | `web_search` | `WebSearchInput{Query}` | `TextOutput{Text}` | `WebSearch` | `webSearch` |
 | `mcp` | `MCPInput{Server, Tool, Arguments}` | `MCPOutput{Content}` | `mcp__<server>__<tool>` | `mcpToolCall` |
-| `subagent` | `SubagentInput{Description, Prompt, Type}` | `TextOutput{Text}` | `Agent` | `subAgentActivity` |
+| `subagent` | `SubagentInput{Description, Prompt, Type}` | `TextOutput{Text}` | `Agent`, or `Task` (the name the CLI's tool list gives it) | `subAgentActivity` |
 | `unknown` | `UnknownInput{Raw}` | `UnknownOutput{Raw}` | any other tool | any other tool item |
 
 Normalization rules applied at the source:
 
 - `ShellInput.Command` is the command the model asked for, with any login-shell wrapper (for example `/bin/bash -lc '<cmd>'`) removed.
-- `ShellOutput.ExitCode` is nil when the harness does not report one.
+- `ShellOutput.ExitCode` is nil when the harness does not report one. A successful Claude Code `Bash` result carries no exit code and means exit code 0, so its `ExitCode` is 0; a failed one reports its code, and a rejected or interrupted call has none.
 - Paths are reported as the harness reported them; they are not rewritten.
 
 The pinned Claude Code's default tool set has no `Glob` or `Grep`; it searches with `Bash`. The adapter keeps the harness's default tool set, so the `glob` and `grep` rows apply only when the user's Claude Code settings enable those tools.
@@ -322,7 +322,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 | Transcript | `<home>/projects/<encoded-workdir>/<session-id>.jsonl` | `<home>/sessions/<yyyy>/<mm>/<dd>/rollout-*-<thread-id>.jsonl` |
 | Turn reference | `{session_id, user_message_uuid}` | `{thread_id, turn_id}` |
 
-Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecognized configuration settings") as items of type `error` in its event stream. They are warnings, not turn failures: the adapter neither fails the turn on them nor emits them as messages.
+Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecognized configuration settings") as `configWarning` notifications, before the thread exists, and as `warning` notifications during a turn. They are warnings, not turn failures: the adapter neither fails the turn on them nor emits them as messages. Only `turn/completed` decides a turn's outcome.
 
 ## Data Model
 
@@ -364,7 +364,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 
 ## Testing
 
-- **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per row of the tool and message mapping tables.
+- **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per scenario of [design 002](002-testing.md#scenarios). The scenarios cover the rows of the tool and message mapping tables that the pinned harnesses produce with the adapters' settings; the rows without a scenario are named in [Status](#status).
 - **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, cancellation and `Close` before the prompt is accepted, completion, `Terminate`, context cancellation, and `Close` during a turn (each honored by the harness, which leaves a child it started in its own process group running; the child must be gone after the stop), a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, IDs included, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.

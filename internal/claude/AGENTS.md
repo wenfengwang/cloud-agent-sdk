@@ -18,6 +18,7 @@ Drives Claude Code through `claude --print` with stream-json on stdin and stdout
 - In bypass mode Claude Code steers the model toward `Bash`, so `read-file`, `write-file`, and `edit-file` sometimes record `Bash` calls. Re-record a scenario whose structural expectations fail.
 - `thinking` blocks carry only a signature; their text is empty in both the stream and the transcript.
 - A successful `Bash` result reports no exit code, so it is mapped to exit code 0. A failed one starts with `Exit code N`, which becomes `ExitCode` and is removed from `Output`. A rejected or interrupted call has no exit code.
+- The subagent tool is listed as `Task` in the `system` init tool list but called as `Agent`; both names map to `subagent` (design 001).
 - A subagent's final assistant message, thinking included, is written to its transcript but not streamed; its text arrives as the `Agent` tool result. Read-back returns that extra message, as design 001 lists under live and read-back differences.
 - Subagent prompts and `[Request interrupted by user ...]` notices are user text, not the turn's user message, and are not emitted.
 

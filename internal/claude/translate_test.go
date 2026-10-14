@@ -22,8 +22,9 @@ var expectations = map[string]func(t *testing.T, turns [][]message.Message){
 		call := requireCall(t, turns[0], message.ToolNameShell)
 		res := requireResult(t, turns[0], call)
 		out := res.Output.(*message.ShellOutput)
-		if out.ExitCode == nil {
-			t.Error("shell result has no exit code")
+		// A successful Bash result reports no exit code; it means 0.
+		if out.ExitCode == nil || *out.ExitCode != 0 {
+			t.Errorf("shell result exit code %v, want 0", out.ExitCode)
 		}
 		if !strings.Contains(out.Output, "cloudagent-shell-check") {
 			t.Errorf("shell output = %q", out.Output)

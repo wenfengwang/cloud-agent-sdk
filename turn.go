@@ -14,7 +14,7 @@ type Turn struct {
 // Result is the outcome of a turn.
 type Result struct {
 	TurnID    string
-	FinalText string // text of the last assistant message
+	FinalText string // text of the last top-level assistant message (empty ParentToolUseID)
 	Usage     Usage
 }
 

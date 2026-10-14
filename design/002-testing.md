@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. `scripts/install-harnesses.sh`, `internal/testenv`, the fake harness, the recorded fixtures, and all four test layers are implemented. The mapping rows listed in [Open Questions](#open-questions) have no scenario yet. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
+Partial. `scripts/install-harnesses.sh`, `internal/testenv`, the fake harness, the recorded fixtures, and all four test layers are implemented. The scenarios for the mapping rows listed in [Open Questions](#open-questions) are not built. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
 
 ## Why
 
@@ -36,12 +36,12 @@ Real CLIs are touched in two places only: recording and real CLI tests. Everythi
 
 ```mermaid
 flowchart LR
-    cli["pinned CLIs in .tools/"] -->|CLOUDAGENT_RECORD=1| fx["testdata/&lt;scenario&gt;/"]
-    fx --> tr["translation tests<br/>(adapter package)"]
-    fx --> rb["read-back tests<br/>(adapter package)"]
-    fx --> fake["fake claude / codex<br/>(first on PATH)"]
-    fake --> lc["lifecycle and replay tests<br/>(package cloudagent)"]
-    cli -->|CLOUDAGENT_E2E=1| e2e["real CLI tests<br/>(package cloudagent)"]
+    cli["pinned CLIs in .tools/"] -->|CLOUDAGENT_RECORD=1| fixtures["testdata/&lt;scenario&gt;/"]
+    fixtures --> translation["translation tests<br/>(adapter package)"]
+    fixtures --> readback["read-back tests<br/>(adapter package)"]
+    fixtures --> fake["fake claude / codex<br/>(first on PATH)"]
+    fake --> lifecycle["lifecycle and replay tests<br/>(package cloudagent)"]
+    cli -->|CLOUDAGENT_E2E=1| realcli["real CLI tests<br/>(package cloudagent)"]
 ```
 
 Code layout:
@@ -185,7 +185,7 @@ Each scenario is defined once in `internal/testenv` with harness-neutral prompts
 | Scenario | Prompt intent | Claude Code must produce | Codex must produce |
 |---|---|---|---|
 | `text` | Reply with a fixed sentence, no tools | `user`, `assistant` | `user`, `assistant` |
-| `shell` | Run one shell command | `shell` call and result with exit code | `shell` call and result, login-shell wrapper removed |
+| `shell` | Run one shell command | `shell` call and result with exit code 0 | `shell` call and result, login-shell wrapper removed |
 | `read-file` | Read a seeded file and quote a line | `file_read` call and result | a `shell` call that reads the file |
 | `write-file` | Create a new file with given content | `file_write` call and result | `file_patch` with an add change |
 | `edit-file` | Change one word in a seeded file | `file_edit` call and result | `file_patch` with an update change |

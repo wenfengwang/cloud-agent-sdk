@@ -22,11 +22,13 @@ const (
 	OpenAI Harness = "openai" // Codex
 )
 
-// Options configures an AgentRuntime.
+// Options configures an AgentRuntime. An empty Home leaves CLAUDE_CONFIG_DIR
+// or CODEX_HOME as the process inherited it, so the harness uses its default
+// home: the inherited variable, otherwise ~/.claude or ~/.codex.
 type Options struct {
 	Model   string // empty selects the harness's default model
 	WorkDir string // required; the harness's working directory
-	Home    string // harness home; empty selects ~/.claude or ~/.codex
+	Home    string // harness home; empty keeps the harness's default
 }
 
 // TurnOptions configures a turn. It has no fields yet.

@@ -112,6 +112,7 @@ The fake records its process ID and every line it receives in a state directory 
 | Concurrent consumers | Module root, fake | Several goroutines call `Messages()` at different points of a paced replay; all see the same sequence from the first message |
 | Read-back equals live | Adapter package, fixtures | The fixture's `home/` tree is copied into a temporary harness home; reading the turn back yields the golden messages, with the same IDs, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
 | Read-back through the API | Module root, fake | The fixture's transcripts reach the harness home (Claude: the fake writes them when its traffic ends; Codex: copied before the first turn, since Codex writes the rollout while the turn runs); `Messages()` after the turn ends yields the same sequence, with the same IDs, as during it, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
+| Same-millisecond tool order | Codex adapter package, synthetic events | Read-back places tool calls before tool results within one millisecond and leaves every other item in place |
 | Index has no content | Module root, fake and real CLI | After the turns, no file under `$HOME/.cloudagent` contains the prompt or any message text, tool input, or tool output of the run; `agent.json` and `turns.jsonl` hold exactly the fields of design 001 |
 
 ### 4. Real CLI tests
@@ -131,6 +132,8 @@ Live at the module root and run only when `CLOUDAGENT_E2E=1`. Each test:
 | Version mismatch | The pinned-CLI check fails for a `claude` or `codex` whose `--version` differs from its pin |
 
 Every real CLI test samples the test process's descendants while it runs and fails if any of them is alive after `Close`.
+
+Every read-back comparison, offline and real, first puts each run of consecutive Codex tool calls and results that share one millisecond (the time of the item event each message comes from; the Codex subagent result comes from an item start) into a canonical order on both sides, then compares the whole sequence, IDs included, in exact order. Design 001 lists that Codex difference; `testenv.SameMillisecondOrder` implements the grouping.
 
 ## Fixtures
 
@@ -228,7 +231,6 @@ This design is verified by the tests it defines: the fixture version check enfor
 ## Open Questions
 
 - **Rows without a scenario.** `web_fetch`, `web_search`, and `mcp` have no scenario on either harness, `glob` and `grep` have none on Claude Code, and Codex `imageView` has none, so their mapping rows are not covered by fixtures.
-- **Codex parallel tool order.** When the model runs tool calls in parallel, Codex can report their items with identical millisecond start and completion times, and the rollout records only those times and the completion order. The live start order of such items cannot be recovered, so a read-back can order their calls and results differently from the live turn (same messages and IDs). Real CLI runs of `glob-grep` hit this intermittently.
 - **Codex reasoning.** The local provider's model catalog does not support reasoning summaries, so the `summary: "auto"` of `turn/start` has no effect and no Codex fixture has a `reasoning` item. Covering the row needs a provider that returns summaries.
 
 ## References

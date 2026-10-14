@@ -358,7 +358,8 @@ func requireResult(t *testing.T, turn *cloudagent.Turn, res cloudagent.Result, l
 }
 
 // requireReadBack reads an ended turn back through Messages and compares it
-// with the live messages, apart from the differences design 001 lists.
+// with the live messages, IDs included, apart from the differences design
+// 001 lists.
 func requireReadBack(t *testing.T, h cloudagent.Harness, turn *cloudagent.Turn, live []cloudagent.Message) {
 	t.Helper()
 	back := collect(t, turn, nil)
@@ -368,6 +369,9 @@ func requireReadBack(t *testing.T, h cloudagent.Harness, turn *cloudagent.Turn, 
 		}
 	}
 	back, _ = withoutUnstreamed(t, h, back, live)
+	// Codex tool items of one millisecond may be read back in another
+	// order (design 001); everything else must match in order.
+	back, live = testenv.SameMillisecondOrder(back), testenv.SameMillisecondOrder(live)
 	// Message IDs are stable between live and read-back (design 001).
 	if got, want := messageIDs(back), messageIDs(live); !slices.Equal(got, want) {
 		t.Errorf("read-back message IDs %v, want the live IDs %v", got, want)

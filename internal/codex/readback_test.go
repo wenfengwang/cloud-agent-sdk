@@ -47,8 +47,11 @@ func TestReadBack(t *testing.T) {
 						t.Errorf("read-back message %s: empty Raw or TurnID set", m.ID)
 					}
 				}
-				if want := withoutRaw(rt.msgs); !reflect.DeepEqual(withoutRaw(got), want) {
-					t.Fatalf("turn %d read back as\n%s\nlive\n%s", i+1, kinds(got), kinds(rt.msgs))
+				// Tool items of one millisecond may be read back in another
+				// order (design 001).
+				got, live := testenv.SameMillisecondOrder(got), testenv.SameMillisecondOrder(rt.msgs)
+				if want := withoutRaw(live); !reflect.DeepEqual(withoutRaw(got), want) {
+					t.Fatalf("turn %d read back as\n%s\nlive\n%s", i+1, kinds(got), kinds(live))
 				}
 			}
 		})
@@ -91,4 +94,38 @@ func withoutRaw(msgs []message.Message) []message.Message {
 		out[i] = m
 	}
 	return out
+}
+
+// TestOrderEvents: events are ordered by time, then by rollout position,
+// except that within one millisecond tool starts (calls) come before tool
+// completions (results); other items keep their place (design 001).
+func TestOrderEvents(t *testing.T) {
+	ev := func(at int64, seq int, started bool, typ, id string) rolloutEvent {
+		return rolloutEvent{at: at, seq: seq, started: started, it: item{Type: typ, ID: id}}
+	}
+	// Two parallel commands a and b start and complete in millisecond 5;
+	// the rollout holds a's completion first, so a's start and completion
+	// precede b's start by position.
+	events := []rolloutEvent{
+		ev(5, 3, true, itemCommand, "b"),
+		ev(9, 6, false, itemAgentMessage, "m2"),
+		ev(5, 0, true, itemCommand, "a"),
+		ev(5, 1, false, itemCommand, "a"),
+		ev(5, 4, false, itemCommand, "b"),
+		ev(1, 2, false, itemAgentMessage, "m1"),
+		ev(5, 5, false, itemAgentMessage, "m"),
+	}
+	orderEvents(events)
+	var got []string
+	for _, e := range events {
+		kind := "done"
+		if e.started {
+			kind = "start"
+		}
+		got = append(got, e.it.ID+":"+kind)
+	}
+	want := []string{"m1:done", "a:start", "b:start", "a:done", "b:done", "m:done", "m2:done"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("order %v, want %v", got, want)
+	}
 }

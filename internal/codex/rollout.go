@@ -111,12 +111,7 @@ func readRolloutOnce(home, thread, turn string) ([]message.Message, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
-	sort.SliceStable(r.events, func(i, j int) bool {
-		if r.events[i].at != r.events[j].at {
-			return r.events[i].at < r.events[j].at
-		}
-		return r.events[i].seq < r.events[j].seq
-	})
+	orderEvents(r.events)
 	var out []message.Message
 	for _, e := range r.events {
 		if e.started {
@@ -126,6 +121,40 @@ func readRolloutOnce(home, thread, turn string) ([]message.Message, bool, error)
 		}
 	}
 	return out, ended, nil
+}
+
+// orderEvents sorts events into live order: by time, then by rollout
+// position. Tool items that run in parallel can start and complete in the
+// same millisecond, and the rollout keeps only their completion order, so
+// their live order cannot be recovered; within one millisecond, tool starts
+// (calls) are placed before tool completions (results), and every other
+// event keeps its place (design 001, live and read-back differences).
+func orderEvents(events []rolloutEvent) {
+	sort.Slice(events, func(i, j int) bool {
+		if events[i].at != events[j].at {
+			return events[i].at < events[j].at
+		}
+		return events[i].seq < events[j].seq
+	})
+	for start := 0; start < len(events); {
+		end := start
+		for end < len(events) && events[end].at == events[start].at {
+			end++
+		}
+		var slots []int
+		var tools []rolloutEvent
+		for i := start; i < end; i++ {
+			if isToolItem(events[i].it.Type) {
+				slots = append(slots, i)
+				tools = append(tools, events[i])
+			}
+		}
+		sort.SliceStable(tools, func(i, j int) bool { return tools[i].started && !tools[j].started })
+		for k, i := range slots {
+			events[i] = tools[k]
+		}
+		start = end
+	}
 }
 
 // rolloutReader collects the events of one turn across the rollouts of its

@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented, verified offline against fixtures recorded from the pinned CLIs, and verified against the pinned CLIs by the real CLI tests of [Testing](#testing). The `glob`, `grep`, `web_fetch`, `web_search`, and `mcp` rows, Codex `reasoning`, and Codex `imageView` have no recorded scenario yet, and the Codex read-back does not always reproduce the live order of tool items that start in the same millisecond ([design 002](002-testing.md#open-questions)).
+Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented, verified offline against fixtures recorded from the pinned CLIs, and verified against the pinned CLIs by the real CLI tests of [Testing](#testing). The `glob`, `grep`, `web_fetch`, `web_search`, and `mcp` rows, Codex `reasoning`, and Codex `imageView` have no recorded scenario yet.
 
 ## Why
 
@@ -303,6 +303,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 | Both | `Raw` holds the harness JSON the message was read from: the stream line or notification live, the transcript entry or rollout item in a read-back |
 | Claude Code | The read-back includes the subagent's final assistant message, with `ParentToolUseID` set, which is never streamed live |
 | Codex | `UnknownInput.Raw` and `UnknownOutput.Raw` hold the rollout's item JSON instead of the app-server item |
+| Codex | Tool calls and results that start or complete in the same millisecond may be read back in a different order (same messages and IDs): the rollout keeps only item completions with millisecond times, so the live order of parallel tool items cannot be recovered. Read-back places such same-millisecond calls before results; every other message keeps the live order. The index does not store message order |
 
 ## Harness Behavior
 
@@ -365,6 +366,6 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 
 - **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per row of the tool and message mapping tables.
 - **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, cancellation before the prompt is accepted, completion, `Terminate`, context cancellation, `Close` during a turn, a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
-- **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
+- **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, IDs included, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
 - **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`: every scenario, continuity, `Terminate` during a running command (no process survives the stop, and the next turn continues the conversation), `Close`, and a read-back of every turn that must match the live messages, IDs included. They fail, rather than skip, when an installed CLI's version differs from its pin.

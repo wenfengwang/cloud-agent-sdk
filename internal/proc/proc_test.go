@@ -13,11 +13,41 @@ import (
 // TestKillTree starts a shell in its own process group that starts a
 // grandchild in another process group, then checks that KillTree ends both,
 // even when PATH does not contain ps.
+// TestKillTree starts a shell in its own process group that starts a
+// grandchild in another process group, then checks that KillTree ends both,
+// even when PATH does not contain ps.
 func TestKillTree(t *testing.T) {
-	// The shell prints the pid of a sleep it moves into a new process group
-	// (set -m gives each background job its own group), then waits.
+	cmd, child := startTree(t)
+	KillTree(cmd.Process.Pid)
+	cmd.Wait()
+	requireGone(t, child)
+}
+
+// TestKillGroups lists the shell's descendant groups while it lives, lets
+// the shell's own group die, and checks that KillGroups then ends the
+// grandchild that would otherwise have survived it.
+func TestKillGroups(t *testing.T) {
+	cmd, child := startTree(t)
+	groups := DescendantGroups(cmd.Process.Pid)
+	if len(groups) != 1 {
+		t.Fatalf("DescendantGroups = %v, want the grandchild's group", groups)
+	}
+	syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	cmd.Wait()
+	if !alive(child) {
+		t.Fatal("the grandchild died with the shell's group")
+	}
+	KillGroups(groups)
+	requireGone(t, child)
+}
+
+// startTree starts a shell in its own process group that prints the pid of
+// a sleep it moves into a new process group (set -m gives each background
+// job its own group), then waits. PATH is narrowed as tests narrow it for
+// harness processes.
+func startTree(t *testing.T) (*exec.Cmd, int) {
+	t.Helper()
 	cmd := exec.Command("/bin/sh", "-c", "set -m; /bin/sleep 300 & echo $!; wait")
-	// Harness processes run with the caller's PATH, which tests narrow.
 	t.Setenv("PATH", t.TempDir())
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	out, err := cmd.StdoutPipe()
@@ -27,6 +57,7 @@ func TestKillTree(t *testing.T) {
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) })
 	buf := make([]byte, 32)
 	n, err := out.Read(buf)
 	if err != nil {
@@ -40,13 +71,15 @@ func TestKillTree(t *testing.T) {
 	if pgid, _ := syscall.Getpgid(child); pgid == cmd.Process.Pid {
 		t.Fatal("the grandchild shares the shell's process group")
 	}
+	return cmd, child
+}
 
-	KillTree(cmd.Process.Pid)
-	cmd.Wait()
+func requireGone(t *testing.T, pid int) {
+	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
-	for alive(child) {
+	for alive(pid) {
 		if time.Now().After(deadline) {
-			t.Fatalf("grandchild %d survived KillTree", child)
+			t.Fatalf("process %d survived", pid)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}

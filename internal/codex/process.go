@@ -310,14 +310,19 @@ func (s *appServer) kill() {
 	proc.KillTree(s.cmd.Process.Pid)
 }
 
-// close ends the process: it closes stdin, waits up to closeGrace for the
-// process to exit, kills it with its descendants if it has not, kills the
-// process group in any case so that no process it started survives, and
-// waits until the process is reaped. It is safe to
-// call more than once and concurrently; every call returns once the process
-// is reaped.
+// close ends the process: it lists the process groups of its descendants,
+// closes stdin, waits up to closeGrace for the process to exit, kills it
+// with its descendants if it has not, and in any case kills its process
+// group and the listed groups, so that no process it started survives, not
+// even a command in its own process group. It then waits until the process
+// is reaped. It is safe to call more than once and concurrently; every call
+// returns once the process is reaped.
 func (s *appServer) close() {
 	s.closeOnce.Do(func() {
+		var groups []int
+		if s.err() == nil {
+			groups = proc.DescendantGroups(s.cmd.Process.Pid)
+		}
 		_ = s.stdin.Close()
 		select {
 		case <-s.done:
@@ -325,6 +330,7 @@ func (s *appServer) close() {
 		case <-time.After(closeGrace):
 			s.kill()
 		}
+		proc.KillGroups(groups)
 		<-s.done
 	})
 	<-s.done

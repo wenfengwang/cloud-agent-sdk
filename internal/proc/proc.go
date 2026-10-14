@@ -1,6 +1,8 @@
-// Package proc force-kills a harness process together with every process
-// it started, including those in other process groups (design 001: no tool
-// process started by a turn outlives that turn's stop).
+// Package proc kills a harness process together with every process it
+// started, including those in other process groups (design 001: no tool
+// process started by a turn outlives that turn's stop). KillTree does it at
+// once; DescendantGroups and KillGroups split it for a harness that is
+// allowed to exit on its own first.
 package proc
 
 import (
@@ -29,6 +31,30 @@ func KillTree(pid int) {
 			syscall.Kill(-p.pgid, syscall.SIGKILL)
 		}
 		syscall.Kill(p.pid, syscall.SIGKILL)
+	}
+}
+
+// DescendantGroups returns the process groups of pid's descendants, other
+// than pid's own group and the caller's. It must run while pid lives: once
+// pid has exited its children are reparented and can no longer be found.
+func DescendantGroups(pid int) []int {
+	own := syscall.Getpgrp()
+	seen := map[int]bool{}
+	var groups []int
+	for _, p := range descendantsOf(pid, processTable()) {
+		if p.pgid > 1 && p.pgid != own && p.pgid != pid && !seen[p.pgid] {
+			seen[p.pgid] = true
+			groups = append(groups, p.pgid)
+		}
+	}
+	return groups
+}
+
+// KillGroups sends SIGKILL to each process group in groups. It does not
+// wait.
+func KillGroups(groups []int) {
+	for _, g := range groups {
+		syscall.Kill(-g, syscall.SIGKILL)
 	}
 }
 

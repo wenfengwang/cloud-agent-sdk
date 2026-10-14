@@ -92,9 +92,9 @@ Live at the module root and use only the exported API. `TestMain` builds the fak
 | CLI not installed | `PATH` without the fake | `Turn` returns a start error |
 | Harness rejects the prompt | Script answers the start request with an error (Codex) or exits before accepting (Claude) | `Turn` returns a start error; no turn is recorded as running |
 | Completion | Replay `text` | `Result` returns the recorded final text and usage; status `completed` |
-| `Terminate` | Replay `terminate` | `Result` returns `ErrTerminated`; status `terminated` |
-| Context cancellation | Replay `terminate`, cancel `ctx` | `Result` returns `ctx.Err()`; status `cancelled` |
-| `Close` during a turn | Replay `terminate`, call `Close` | `Result` returns `ErrClosed`; status `closed`; no fake process alive |
+| `Terminate` | Replay `terminate`; the script honors the stop but spawns a child in its own process group at the shell call | `Result` returns `ErrTerminated`; status `terminated`; the fake and its child are gone |
+| Context cancellation | As `Terminate`, cancel `ctx` | `Result` returns `ctx.Err()`; status `cancelled`; the fake and its child are gone |
+| `Close` during a turn | As `Terminate`, call `Close` | `Result` returns `ErrClosed`; status `closed`; the fake and its child are gone |
 | Process crash | Script exits non-zero after the first lines | `Result` returns a wrapped harness error; status `failed` |
 | Start cancelled | Script stalls before the line that accepts the prompt; `ctx` times out | `Turn` returns `ctx.Err()`; no turn recorded; no fake process alive |
 | `Close` during the start | Script stalls before the line that accepts the prompt; `ctx` has no deadline; call `Close` | `Close` returns; `Turn` returns `ErrClosed`; no turn recorded; no fake process alive |

@@ -19,7 +19,7 @@ Drives Codex through `codex app-server`. Behavior is owned by [design 001](../..
 | File | Owns |
 |---|---|
 | `harness.go` | `New`, `StartTurn` (process start, `initialize`, `thread/start` or `thread/resume`, `turn/start`), `ReadTurn`, `Close` |
-| `process.go` | The `app-server` process (own process group), its force kill with every descendant, and its JSON-RPC connection; unbounded notification queue |
+| `process.go` | The `app-server` process (own process group), its shutdown and force kill with every descendant, and its JSON-RPC connection; unbounded notification queue |
 | `run.go` | One accepted turn: the notification `stream` (the turn's thread and its subagent threads), interrupt and the app-server shutdown after it, kill, usage |
 | `translate.go` | App-server items to canonical messages; the only mapping code, including subagent calls and `ParentToolUseID` |
 | `rollout.go` | Read-back from `<home>/sessions/**/rollout-*-<thread>.jsonl` and the rollouts of the turn's subagent threads, converted into app-server items |
@@ -29,7 +29,7 @@ Drives Codex through `codex app-server`. Behavior is owned by [design 001](../..
 ## Rules
 
 - Non-test code imports only the standard library, `internal/harness`, `internal/message`, and `internal/proc`.
-- Every force kill of the `app-server` goes through `proc.KillTree`, so the commands Codex runs in their own process groups die with it.
+- Every force kill of the `app-server` goes through `proc.KillTree`, so the commands Codex runs in their own process groups die with it. A shutdown lists the descendants' process groups (`proc.DescendantGroups`) before it closes stdin and kills them once the process has exited, so no command survives a shutdown either.
 - Live runs and read-back share `translate.go`: read-back converts each rollout item into the app-server item shape first. Never map a tool in two places.
 - A turn's outcome comes from `turn/completed` alone. `configWarning`, `warning`, and `error` notifications (retrying or not) never fail a turn and are never emitted.
 - A turn follows the subagent threads it starts (`subAgentActivity` kind `started`); their items carry the spawn call's ID as `ParentToolUseID`. Notifications of every other thread are ignored, and usage counts the turn's own thread only.

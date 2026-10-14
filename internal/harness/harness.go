@@ -109,15 +109,17 @@ type Run interface {
 
 	// Interrupt asks the harness to stop the turn gracefully (Claude Code:
 	// interrupt control request; Codex: turn/interrupt). It does not block.
+	// When the harness honors it, no tool process the turn started may
+	// survive the run's end, including one in its own process group.
 	Interrupt()
 
 	// Kill ends the turn immediately by killing the harness process, its
 	// process group, and the process groups of its descendants
-	// (proc.KillTree), so that no tool process survives. The agent calls it when a run has not ended within
-	// its grace period after Interrupt, and when the index cannot be
-	// written after acceptance. After Kill, Messages is closed promptly. A
-	// later StartTurn must start a fresh process that continues the
-	// conversation.
+	// (proc.KillTree), so that no tool process survives. The agent calls it
+	// when a run has not ended within its grace period after Interrupt, and
+	// when the index cannot be written after acceptance. After Kill,
+	// Messages is closed promptly. A later StartTurn must start a fresh
+	// process that continues the conversation.
 	Kill()
 
 	// Wait returns the outcome after Messages has been closed. A non-nil

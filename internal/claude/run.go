@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -42,6 +43,9 @@ type run struct {
 	stdinClosed bool
 
 	interruptOnce sync.Once
+	interrupted   atomic.Bool   // set by the first Interrupt
+	stopListed    chan struct{} // closed once stopGroups is set
+	stopGroups    []int         // descendant process groups at Interrupt
 
 	// Set by the reader before readDone.
 	ref    harness.Ref
@@ -86,14 +90,15 @@ func startRun(ctx context.Context, h *Harness, args []string, prompt string) (*r
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.WaitDelay = pipeGrace
 	r := &run{
-		h:        h,
-		cmd:      cmd,
-		stderr:   &tailBuffer{max: 4096},
-		msgs:     make(chan message.Message),
-		accepted: make(chan struct{}),
-		readDone: make(chan struct{}),
-		exited:   make(chan struct{}),
-		ref:      harness.Ref{SessionID: h.sessionID},
+		h:          h,
+		cmd:        cmd,
+		stderr:     &tailBuffer{max: 4096},
+		msgs:       make(chan message.Message),
+		accepted:   make(chan struct{}),
+		readDone:   make(chan struct{}),
+		exited:     make(chan struct{}),
+		stopListed: make(chan struct{}),
+		ref:        harness.Ref{SessionID: h.sessionID},
 	}
 	cmd.Stderr = r.stderr
 	stdin, err := cmd.StdinPipe()
@@ -145,10 +150,17 @@ func (r *run) abort() {
 }
 
 // reap waits for the process and then kills what is left of its process
-// group, so that no child of the harness outlives the turn.
+// group, so that no child of the harness outlives the turn. After an
+// Interrupt it also kills the process groups the harness's descendants had
+// when the stop was requested: a tool command in its own group survives
+// the harness otherwise.
 func (r *run) reap() {
 	r.waitErr = r.cmd.Wait()
 	syscall.Kill(-r.cmd.Process.Pid, syscall.SIGKILL)
+	if r.interrupted.Load() {
+		<-r.stopListed
+		proc.KillGroups(r.stopGroups)
+	}
 	close(r.exited)
 	select {
 	case <-r.readDone:
@@ -257,15 +269,24 @@ func (r *run) Ref() harness.Ref { return r.ref }
 // Messages implements harness.Run.
 func (r *run) Messages() <-chan message.Message { return r.msgs }
 
-// Interrupt implements harness.Run: it sends the interrupt control request
-// once, without waiting for the write.
+// Interrupt implements harness.Run: once, without blocking, it lists the
+// process groups of the harness's descendants while the harness still
+// lives (reap kills them after it exits), then sends the interrupt control
+// request.
 func (r *run) Interrupt() {
 	r.interruptOnce.Do(func() {
-		go r.send(map[string]any{
-			"type":       "control_request",
-			"request_id": "cloudagent-interrupt",
-			"request":    map[string]string{"subtype": "interrupt"},
-		})
+		r.interrupted.Store(true)
+		go func() {
+			if !isClosed(r.exited) {
+				r.stopGroups = proc.DescendantGroups(r.cmd.Process.Pid)
+			}
+			close(r.stopListed)
+			r.send(map[string]any{
+				"type":       "control_request",
+				"request_id": "cloudagent-interrupt",
+				"request":    map[string]string{"subtype": "interrupt"},
+			})
+		}()
 	})
 }
 

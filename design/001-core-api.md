@@ -89,7 +89,7 @@ Code layout:
 | `cloudagent.go` and siblings (package `cloudagent`) | The entire public API: constructors, handles, message and tool types, errors |
 | `internal/message` | The canonical message and tool types; package `cloudagent` re-exports them as aliases |
 | `internal/harness` | The contract between `internal/agent` and the harness adapters |
-| `internal/proc` | Force-killing a harness process with every descendant, including those in other process groups |
+| `internal/proc` | Killing a harness process with every descendant, including those in other process groups, at once or after the harness exits |
 | `internal/agent` | Turn lifecycle, the single-active-turn rule, the in-memory message buffer, the `~/.cloudagent` index |
 | `internal/claude` | Claude Code process, stream-json protocol, translation, transcript reading |
 | `internal/codex` | `codex app-server` process, JSON-RPC protocol, translation, rollout reading |
@@ -315,7 +315,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 | Turn accepted | The CLI echoed the prompt back as a user message; the echo supplies `user_message_uuid` | `turn/start` returned |
 | Reasoning | `thinking` blocks as the harness emits them | `turn/start` requests reasoning summaries with `summary: "auto"` |
 | Permissions | `--permission-mode bypassPermissions` | approval policy `never`, sandbox `danger-full-access` |
-| Graceful stop | `interrupt` control request; the process is force-killed after the grace period | `turn/interrupt`; once the turn has ended, the `app-server` is shut down (stdin closed, then force-killed if it has not exited within the grace period), because Codex keeps the turn's running commands alive until it shuts down. If the turn has not ended within the grace period, the `app-server` is force-killed. The next turn starts a new `app-server` and continues the thread with `thread/resume` |
+| Graceful stop | `interrupt` control request; the process is force-killed after the grace period. The process groups of the harness's descendants are listed when the stop is requested and killed once the process has exited, so a tool command in its own process group does not outlive an honored stop | `turn/interrupt`; once the turn has ended, the `app-server` is shut down (stdin closed, then force-killed if it has not exited within the grace period), because Codex keeps the turn's running commands alive until it shuts down. Every shutdown lists the process groups of the `app-server`'s descendants before closing stdin and kills them once it has exited. If the turn has not ended within the grace period, the `app-server` is force-killed. The next turn starts a new `app-server` and continues the thread with `thread/resume` |
 | Force kill | The process tree is listed while the harness process still lives, then the harness's process group and the process group of every descendant are killed, so tool commands in their own process groups die with it | Same |
 | Close | No process outlives a turn | `app-server` process stopped |
 | Harness home | `CLAUDE_CONFIG_DIR` | `CODEX_HOME` |
@@ -365,7 +365,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 ## Testing
 
 - **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per row of the tool and message mapping tables.
-- **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, cancellation and `Close` before the prompt is accepted, completion, `Terminate`, context cancellation, `Close` during a turn, a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
+- **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, cancellation and `Close` before the prompt is accepted, completion, `Terminate`, context cancellation, and `Close` during a turn (each honored by the harness, which leaves a child it started in its own process group running; the child must be gone after the stop), a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, IDs included, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
 - **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`: every scenario, continuity, `Terminate` during a running command (no process survives the stop, and the next turn continues the conversation), `Close`, and a read-back of every turn that must match the live messages, IDs included. They fail, rather than skip, when an installed CLI's version differs from its pin.

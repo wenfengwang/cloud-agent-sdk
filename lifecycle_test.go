@@ -191,7 +191,9 @@ func TestCloseDuringStart(t *testing.T) {
 }
 
 // TestStop replays the terminate scenario and stops the turn once its shell
-// call appears, through each of the three stop causes of design 001.
+// call appears, through each of the three stop causes of design 001. The
+// fake honors the stop but leaves a tool process it started in its own
+// process group running, which the stop must kill.
 func TestStop(t *testing.T) {
 	causes := []struct {
 		name   string
@@ -205,7 +207,15 @@ func TestStop(t *testing.T) {
 	for _, h := range harnesses {
 		for _, c := range causes {
 			t.Run(string(h)+"/"+c.name, func(t *testing.T) {
-				e := newReplay(t, h, "terminate", nil)
+				e := newReplay(t, h, "terminate", func(e *replayEnv, invs []fakeharness.Invocation) []fakeharness.Invocation {
+					invs[0].HangAfter = &fakeharness.Hang{Lines: e.recvLinesThrough(t, 1, markers[h].shellCall), OnInterrupt: fakeharness.OnInterruptHonor, SpawnChild: true}
+					return invs
+				})
+				t.Cleanup(func() {
+					for _, pid := range e.state.Children(t) {
+						syscall.Kill(pid, syscall.SIGKILL)
+					}
+				})
 				want := e.goldenTurns(t)[0]
 				a := e.newAgent(t)
 				ctx, cancel := context.WithCancel(context.Background())
@@ -249,6 +259,12 @@ func TestStop(t *testing.T) {
 				// after a stopped turn.
 				if pids := e.state.LivePIDs(t); len(pids) != 0 {
 					t.Errorf("harness processes alive after the stop: %v", pids)
+				}
+				if len(e.state.Children(t)) != 1 {
+					t.Fatal("the fake spawned no tool process")
+				}
+				if pids := e.state.LiveChildren(t); len(pids) != 0 {
+					t.Errorf("tool processes alive after the stop: %v", pids)
 				}
 				if got := messageIDs(msgs); !slices.Equal(got, goldenIDs(want)) {
 					t.Errorf("message IDs %v, want %v", got, goldenIDs(want))

@@ -23,6 +23,9 @@ type Turn struct {
 	id   string
 	rt   *Runtime
 	done chan struct{} // closed when the turn has ended or its start failed
+	// cancelStart cancels the harness start; set before the turn becomes
+	// active and safe to call after the start returned.
+	cancelStart context.CancelFunc
 
 	mu        sync.Mutex
 	cond      *sync.Cond
@@ -129,7 +132,8 @@ func (t *Turn) begin(ctx context.Context, run harness.Run, ref harness.Ref) {
 }
 
 // stop records the first stop cause and interrupts the run. Before the run
-// exists, begin interrupts it as soon as it does.
+// exists, it cancels the start, and begin interrupts a run whose start
+// succeeded anyway.
 func (t *Turn) stop(cause error) {
 	t.mu.Lock()
 	if t.finishing || t.stopCause != nil {
@@ -141,7 +145,16 @@ func (t *Turn) stop(cause error) {
 	t.mu.Unlock()
 	if run != nil {
 		t.interrupt(run)
+		return
 	}
+	t.cancelStart()
+}
+
+// stoppedBy returns the recorded stop cause, or nil.
+func (t *Turn) stoppedBy() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.stopCause
 }
 
 // interrupt asks the run to stop and kills it if it has not ended within the

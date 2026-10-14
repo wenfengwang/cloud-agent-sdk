@@ -118,6 +118,7 @@ func (a *AgentRuntime) Turn(ctx context.Context, prompt string, opts TurnOptions
 
 // Close stops the active turn, if any, through the graceful stop path, waits
 // for it to end, and stops the harness process. That turn's Result returns
-// ErrClosed. Close is idempotent; afterwards Turn fails with ErrClosed, and
+// ErrClosed. A Turn call still waiting for the harness to accept its prompt
+// is cancelled and returns ErrClosed. Close is idempotent; afterwards Turn fails with ErrClosed, and
 // turns that already ended can still be read.
 func (a *AgentRuntime) Close() error { return a.rt.Close() }

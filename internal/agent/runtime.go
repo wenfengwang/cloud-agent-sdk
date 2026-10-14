@@ -85,17 +85,25 @@ func (r *Runtime) Turn(ctx context.Context, prompt string) (*Turn, error) {
 		r.mu.Unlock()
 		return nil, errors.New("cloudagent: prompt is empty")
 	}
+	// Close cancels the start through startCtx; ctx bounds it as well.
+	startCtx, cancelStart := context.WithCancel(ctx)
+	defer cancelStart()
+	t.cancelStart = cancelStart
 	r.active = t
 	r.mu.Unlock()
 
 	startedAt := time.Now()
-	run, err := r.adapter.StartTurn(ctx, prompt)
+	run, err := r.adapter.StartTurn(startCtx, prompt)
 	if err != nil {
 		t.abandon()
 		// A start cut short by ctx reports ctx.Err(), as a running turn
-		// would; the prompt may already be in the conversation.
+		// would, and one cut short by Close reports ErrClosed; the prompt
+		// may already be in the conversation.
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, ctxErr
+		}
+		if t.stoppedBy() == ErrClosed {
+			return nil, ErrClosed
 		}
 		return nil, fmt.Errorf("cloudagent: start turn: %w", err)
 	}
@@ -113,7 +121,8 @@ func (r *Runtime) Turn(ctx context.Context, prompt string) (*Turn, error) {
 }
 
 // Close stops the active turn through the graceful stop path, waits for it to
-// end, and closes the harness. It is idempotent.
+// end, and closes the harness. A turn that is still starting has its start
+// cancelled. It is idempotent.
 func (r *Runtime) Close() error {
 	r.mu.Lock()
 	if r.closed {

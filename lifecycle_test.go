@@ -136,6 +136,60 @@ func TestStartCancelled(t *testing.T) {
 	}
 }
 
+// TestCloseDuringStart closes the agent while the harness has not accepted
+// the prompt and the caller's context has no deadline: Close cancels the
+// start, Turn returns ErrClosed, and no harness process survives.
+func TestCloseDuringStart(t *testing.T) {
+	for _, h := range harnesses {
+		t.Run(string(h), func(t *testing.T) {
+			e := newReplay(t, h, "text", func(e *replayEnv, invs []fakeharness.Invocation) []fakeharness.Invocation {
+				// Stall right before the line that accepts the prompt.
+				invs[0].HangAfter = &fakeharness.Hang{Lines: e.recvLinesThrough(t, 1, markers[h].acceptance) - 1, OnInterrupt: fakeharness.OnInterruptHonor}
+				return invs
+			})
+			a := e.newAgent(t)
+			type started struct {
+				turn *cloudagent.Turn
+				err  error
+			}
+			turnDone := make(chan started, 1)
+			go func() {
+				turn, err := a.Turn(context.Background(), e.rec.Meta.Prompts[0], cloudagent.TurnOptions{})
+				turnDone <- started{turn, err}
+			}()
+			deadline := time.Now().Add(5 * time.Second)
+			for len(e.state.PIDs(t)) == 0 {
+				if time.Now().After(deadline) {
+					t.Fatal("the fake never started")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			time.Sleep(200 * time.Millisecond) // let the fake reach its stall
+
+			closed := make(chan error, 1)
+			go func() { closed <- a.Close() }()
+			select {
+			case err := <-closed:
+				if err != nil {
+					t.Fatalf("Close: %v", err)
+				}
+			case <-time.After(10 * time.Second):
+				t.Fatal("Close did not return while the start was in flight")
+			}
+			got := <-turnDone
+			if got.turn != nil || !errors.Is(got.err, cloudagent.ErrClosed) {
+				t.Fatalf("Turn = %v, %v; want nil, ErrClosed", got.turn, got.err)
+			}
+			if recs := e.turnRecords(t, a); len(recs) != 0 {
+				t.Errorf("a start cut short by Close was recorded: %+v", recs)
+			}
+			if pids := e.state.LivePIDs(t); len(pids) != 0 {
+				t.Errorf("harness processes alive after Close: %v", pids)
+			}
+		})
+	}
+}
+
 // TestStop replays the terminate scenario and stops the turn once its shell
 // call appears, through each of the three stop causes of design 001.
 func TestStop(t *testing.T) {

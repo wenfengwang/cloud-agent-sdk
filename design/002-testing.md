@@ -97,6 +97,7 @@ Live at the module root and use only the exported API. `TestMain` builds the fak
 | `Close` during a turn | Replay `terminate`, call `Close` | `Result` returns `ErrClosed`; status `closed`; no fake process alive |
 | Process crash | Script exits non-zero after the first lines | `Result` returns a wrapped harness error; status `failed` |
 | Start cancelled | Script stalls before the line that accepts the prompt; `ctx` times out | `Turn` returns `ctx.Err()`; no turn recorded; no fake process alive |
+| `Close` during the start | Script stalls before the line that accepts the prompt; `ctx` has no deadline; call `Close` | `Close` returns; `Turn` returns `ErrClosed`; no turn recorded; no fake process alive |
 | Interrupt ignored | Script hangs, ignores the graceful stop, and spawns a child in its own process group | The turn ends as stopped once the grace period of design 001 has passed; the fake and its child are gone |
 | Single active turn | Script hangs; call `Turn` again | Second call returns `ErrTurnInProgress` |
 | After `Close` | Call `Turn` | Returns `ErrClosed`; ended turns remain readable |

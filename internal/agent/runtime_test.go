@@ -424,6 +424,36 @@ func TestCloseWithoutTurn(t *testing.T) {
 	}
 }
 
+// TestCloseCancelsStart closes the agent while the harness waits forever to
+// accept the prompt: Close cancels the start and Turn returns ErrClosed.
+func TestCloseCancelsStart(t *testing.T) {
+	h := &fakeHarness{startBlocks: true, startEntered: make(chan struct{}), startRelease: make(chan struct{})}
+	close(h.startRelease)
+	runtime := newTestRuntime(t, h)
+	turnErr := make(chan error, 1)
+	go func() {
+		_, err := runtime.Turn(context.Background(), "p")
+		turnErr <- err
+	}()
+	<-h.startEntered
+	closed := make(chan error, 1)
+	go func() { closed <- runtime.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Close did not cancel the start")
+	}
+	if err := <-turnErr; err != ErrClosed {
+		t.Fatalf("Turn = %v, want ErrClosed", err)
+	}
+	if turns := readTurns(t, runtime); len(turns) != 0 {
+		t.Fatalf("a cancelled start was recorded: %v", turns)
+	}
+}
+
 func TestCloseDuringStart(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), hold: true}
 	h := &fakeHarness{

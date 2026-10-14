@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,12 +28,19 @@ type fakeHarness struct {
 	// StartTurn then blocks until startRelease is closed.
 	startEntered chan struct{}
 	startRelease chan struct{}
+	// startBlocks makes StartTurn wait for ctx and return its error, as a
+	// harness that never accepts the prompt.
+	startBlocks bool
 }
 
 func (h *fakeHarness) StartTurn(ctx context.Context, prompt string) (harness.Run, error) {
 	if h.startEntered != nil {
 		h.startEntered <- struct{}{}
 		<-h.startRelease
+	}
+	if h.startBlocks {
+		<-ctx.Done()
+		return nil, fmt.Errorf("fake: start: %w", ctx.Err())
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()

@@ -184,6 +184,8 @@ type Usage struct {
 - `Result` blocks until the turn ends and returns the same values on every call. It returns `ErrTerminated` after `Terminate`, `ctx.Err()` after cancellation, and a wrapped harness error after a failure.
 - `Terminate` requests a graceful stop and returns without waiting; call `Result` to wait. Calling it on a finished turn is a no-op.
 
+`Usage` counts tokens the same way for both harnesses. `InputTokens` excludes input read from the prompt cache, `CacheReadTokens` counts input read from the cache, and `CacheWriteTokens` counts input written to it. Codex reports cached input as part of its input count, so its `InputTokens` is `input_tokens - cached_input_tokens`; Claude Code reports the three counts separately.
+
 ### Errors
 
 ```go
@@ -250,7 +252,7 @@ type ToolResult struct {
 
 `ToolInput` and `ToolOutput` are sealed interfaces; consumers use a type switch. Each `ToolName` has one input type and one output type.
 
-Each `ToolName` constant is `ToolName` followed by the name in camel case (`ToolNameShell`, `ToolNameFileRead`, ..., `ToolNameMCP`, `ToolNameUnknown`). Input and output types are used as pointers (`*ShellInput`). Their fields are `string` except `TimeoutMs int64`, `Offset` and `Limit int`, `ReplaceAll bool`, `ExitCode *int`, and `MCPInput.Arguments`, `MCPOutput.Content`, and `Raw` (`json.RawMessage`). `FileChange.Kind` is `add`, `delete`, or `update`; `TodoItem.Status` is the harness's status string.
+Each `ToolName` constant is `ToolName` followed by the name in camel case (`ToolNameShell`, `ToolNameFileRead`, ..., `ToolNameMCP`, `ToolNameUnknown`). Input and output types are used as pointers (`*ShellInput`). Their fields are `string` except `TimeoutMs int64`, `Offset` and `Limit int`, `ReplaceAll bool`, `ExitCode *int`, and `MCPInput.Arguments`, `MCPOutput.Content`, and `Raw` (`json.RawMessage`). `FileChange.Kind` is `add`, `delete`, or `update`.
 
 | `ToolName` | Input | Output | Claude Code | Codex |
 |---|---|---|---|---|
@@ -264,8 +266,7 @@ Each `ToolName` constant is `ToolName` followed by the name in camel case (`Tool
 | `web_fetch` | `WebFetchInput{URL, Prompt}` | `TextOutput{Text}` | `WebFetch` | — |
 | `web_search` | `WebSearchInput{Query}` | `TextOutput{Text}` | `WebSearch` | `webSearch` |
 | `mcp` | `MCPInput{Server, Tool, Arguments}` | `MCPOutput{Content}` | `mcp__<server>__<tool>` | `mcpToolCall` |
-| `subagent` | `SubagentInput{Description, Prompt, Type}` | `TextOutput{Text}` | `Agent` | `collabAgentToolCall` |
-| `todo` | `TodoInput{Items []TodoItem{Text, Status}}` | `TextOutput{Text}` | `TodoWrite` | — |
+| `subagent` | `SubagentInput{Description, Prompt, Type}` | `TextOutput{Text}` | `Agent` | `subAgentActivity` |
 | `unknown` | `UnknownInput{Raw}` | `UnknownOutput{Raw}` | any other tool | any other tool item |
 
 Normalization rules applied at the source:
@@ -273,6 +274,10 @@ Normalization rules applied at the source:
 - `ShellInput.Command` is the command the model asked for, with any login-shell wrapper (for example `/bin/bash -lc '<cmd>'`) removed.
 - `ShellOutput.ExitCode` is nil when the harness does not report one.
 - Paths are reported as the harness reported them; they are not rewritten.
+
+The pinned Claude Code's default tool set has no `Glob` or `Grep`; it searches with `Bash`. The adapter keeps the harness's default tool set, so the `glob` and `grep` rows apply only when the user's Claude Code settings enable those tools.
+
+A subagent is one `subagent` call and its result on both harnesses, and every message the subagent produces carries the call's ID as `ParentToolUseID`. On Codex, a `subAgentActivity` item of kind `started` is the call, its ID is the ID of the spawn call, and the matching `completed` activity is the result; the items of the subagent's thread are emitted with that ID as `ParentToolUseID`. Codex `collabAgentToolCall` items, such as the step that waits for a subagent, are `unknown` tool calls.
 
 ### Harness message mapping
 
@@ -284,15 +289,25 @@ Normalization rules applied at the source:
 | `tool_call` | `tool_use` content block | `item/started` of a tool item |
 | `tool_result` | `tool_result` content block of a user message | `item/completed` of a tool item |
 
-Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imageGeneration`, `contextCompaction`, `subAgentActivity`, `functionCallOutput`, and review-mode items are not emitted.
+Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imageGeneration`, `contextCompaction`, `functionCallOutput`, and review-mode items, and `subAgentActivity` items of kind `interacted` or `interrupted`, are not emitted.
+
+### Live and read-back differences
+
+A finished turn is read back from the harness home, which does not hold everything the harness streamed. These differences between a live read and a read-back are known:
+
+| Harness | Difference |
+|---|---|
+| Claude Code | The read-back includes the subagent's final assistant message, with `ParentToolUseID` set, which is never streamed live |
 
 ## Harness Behavior
 
 | | Claude Code | Codex |
 |---|---|---|
 | Version | Pinned in [harness-versions.json](../harness-versions.json) | Pinned in [harness-versions.json](../harness-versions.json); protocol committed as [app-server.v2.schema.json](../internal/codex/schema/app-server.v2.schema.json) |
-| Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose`, with `--resume <session-id>` after the first turn | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` (first turn) or the existing thread, then `turn/start` per turn |
-| Turn accepted | The process started and the prompt was written | `turn/start` returned |
+| Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose --replay-user-messages`, with `--resume <session-id>` after the first turn | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` (first turn) or the existing thread, then `turn/start` per turn |
+| Client identity | — | `initialize` sends `clientInfo` with name `codex_cli_rs`, the pinned CLI's default originator, and title `cloudagent` |
+| Turn accepted | The CLI echoed the prompt back as a user message; the echo supplies `user_message_uuid` | `turn/start` returned |
+| Reasoning | `thinking` blocks as the harness emits them | `turn/start` requests reasoning summaries with `summary: "auto"` |
 | Permissions | `--permission-mode bypassPermissions` | approval policy `never`, sandbox `danger-full-access` |
 | Graceful stop | `interrupt` control request; the process is killed after the grace period | `turn/interrupt`; the `app-server` process is killed after the grace period, and the next turn starts a new one on the same thread |
 | Close | No process outlives a turn | `app-server` process stopped |
@@ -332,6 +347,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - **Streaming deltas.** Only complete messages are emitted; partial text and thinking deltas need their own design.
 - **Hooks and custom tools.** Intercepting tool calls or registering in-process tools needs its own design.
 - **Permission and sandbox control.** Harnesses always run in bypass mode; restricting them needs its own design, together with hooks to answer approvals.
+- **Task and plan tools.** A canonical task list needs its own design. Until then, Claude Code task tools (`TodoWrite`, `TaskCreate`, `TaskUpdate`) are `unknown` tool calls and Codex `plan` items are not emitted.
 - **Rollback, fork, and steering.** Conversation history editing and injecting input into a running turn need their own design.
 - **Resuming a previous agent.** An `AgentRuntime` cannot be reopened from its ID yet, although the index is written so that it can be added.
 - **Remote access and VM provisioning.** cloudagent runs inside the VM, next to the harness, and starts it as a local process. Exposing the API across the network and provisioning or sandboxing the VM need their own design.
@@ -341,10 +357,10 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 
 - **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per row of the tool and message mapping tables.
 - **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, completion, `Terminate`, context cancellation, `Close` during a turn, process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
-- **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence (minus fields harnesses do not persist) is read back from the harness home after the turn.
+- **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
 - **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`. They fail, rather than skip, when an installed CLI's version differs from its pin.
 
 ## Open Questions
 
-- **Read-back differences.** Harnesses do not persist everything they stream (Codex documents its persisted items as lossy). Which fields may differ between a live read and a read-back must be listed once the adapters exist.
+- **Read-back differences.** Codex documents its persisted items as lossy. Differences beyond those in [Live and read-back differences](#live-and-read-back-differences) are not yet known and must be added there once the adapters' read-back tests establish them.

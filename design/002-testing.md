@@ -109,7 +109,7 @@ The fake records its process ID and every line it receives in a state directory 
 | Check | Where | How |
 |---|---|---|
 | Concurrent consumers | Module root, fake | Several goroutines call `Messages()` at different points of a paced replay; all see the same sequence from the first message |
-| Read-back equals live | Adapter package, fixtures | The fixture's `home/` tree is copied into a temporary harness home; reading the turn back yields the golden messages, except for the fields design 001 lists as not persisted |
+| Read-back equals live | Adapter package, fixtures | The fixture's `home/` tree is copied into a temporary harness home; reading the turn back yields the golden messages, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
 | Read-back through the API | Module root, fake | The fake writes the fixture's transcript into the harness home; `Messages()` after the turn ends yields the same sequence as during it |
 | Index has no content | Module root, fake and real CLI | After the turns, no file under `$HOME/.cloudagent` contains the prompt or any message text, tool input, or tool output of the run; `agent.json` and `turns.jsonl` hold exactly the fields of design 001 |
 
@@ -159,11 +159,13 @@ CLOUDAGENT_RECORD=1 go test ./internal/claude ./internal/codex -run TestRecord
 
 For each scenario, the recording test seeds a temporary working directory, drives the pinned CLI through the adapter's own process and protocol code with a traffic tap attached, performs the scenario's actions (further prompts, the terminate request), copies the harness home's transcript files, scrubs everything, and writes the fixture. The tap is internal to the adapter package; it is not part of the public API.
 
+Codex recording sets a test-only configuration override that enables the `apply_patch` tool, so the `write-file` and `edit-file` scenarios produce `fileChange` items and the `file_patch` row gets a real fixture. Real CLI tests set the same override; production runs do not.
+
 Scrubbing replaces with `REDACTED` every credential value loaded from `.harness-local/`, bearer tokens, authorization headers, and anything matching an API key pattern, then replaces paths with the placeholders above. The recording fails, writing nothing, if any loaded credential value is still present afterwards.
 
 ### Scenarios
 
-Each scenario is defined once in `internal/testenv` with harness-neutral prompts and seed files, and recorded for both harnesses. The expectations name the canonical rows of design 001 each fixture must cover; Codex exposes no dedicated file, search, or todo tools, so its expectations differ.
+Each scenario is defined once in `internal/testenv` with harness-neutral prompts and seed files, and recorded for both harnesses. The expectations name the canonical rows of design 001 each fixture must cover. The harnesses expose different tool sets (Codex has no dedicated read or search tools, and the pinned Claude Code's default tool set has no `Glob` or `Grep`), so their expectations differ.
 
 | Scenario | Prompt intent | Claude Code must produce | Codex must produce |
 |---|---|---|---|
@@ -172,13 +174,12 @@ Each scenario is defined once in `internal/testenv` with harness-neutral prompts
 | `read-file` | Read a seeded file and quote a line | `file_read` call and result | a `shell` call that reads the file |
 | `write-file` | Create a new file with given content | `file_write` call and result | `file_patch` with an add change |
 | `edit-file` | Change one word in a seeded file | `file_edit` call and result | `file_patch` with an update change |
-| `glob-grep` | List files by pattern, then search for a word | `glob` and `grep` calls and results | `shell` calls |
-| `subagent` | Delegate a small task to a subagent | `subagent` call; messages inside it carry `ParentToolUseID` | `subagent` call (see [Open Questions](#open-questions)) |
-| `todo` | Track a three-step plan as a todo list | `todo` call with three items | no `todo` message (`plan` items are not emitted) |
+| `glob-grep` | List files by pattern, then search for a word | `shell` calls | `shell` calls |
+| `subagent` | Delegate a small task to a subagent | `subagent` call and result; messages inside it carry the call's ID as `ParentToolUseID` | `subagent` call and result; messages inside it carry the call's ID as `ParentToolUseID`; the wait step is an `unknown` call |
 | `terminate` | Run `sleep 30`; the turn is terminated once the `shell` call appears | `shell` call; the turn ends as terminated | `shell` call; the turn ends as terminated |
 | `two-turn` | Remember a word; in a second turn, ask for it | second turn's final text contains the word | second turn's final text contains the word |
 
-`reasoning` is covered wherever a recorded scenario contains it; the Codex fixtures also cover configuration warnings, which must yield no message and no failure.
+`reasoning` is covered wherever a recorded scenario contains it, which for Codex follows from the reasoning summaries the adapter requests; the Codex fixtures also cover configuration warnings, which must yield no message and no failure.
 
 ## Isolation and Credentials
 
@@ -215,8 +216,7 @@ This design is verified by the tests it defines: the fixture version check enfor
 
 ## Open Questions
 
-- **Rows without a scenario.** `web_fetch`, `web_search`, `mcp`, and `unknown` have no scenario yet, so their mapping rows are not covered by fixtures.
-- **Codex subagents.** Whether the pinned Codex with the local configuration emits `collabAgentToolCall` for the `subagent` prompt is unverified; if it does not, the Codex `subagent` fixture asserts only that no failure occurs.
+- **Rows without a scenario.** `web_fetch`, `web_search`, and `mcp` have no scenario on either harness, and `glob` and `grep` have none on Claude Code, so their mapping rows are not covered by fixtures.
 - **Read-back differences.** The fields that may differ between live and read-back messages are owned by [design 001](001-core-api.md#open-questions); the read-back tests compare everything else.
 
 ## References

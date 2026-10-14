@@ -42,12 +42,14 @@ type Ref struct {
 	Data json.RawMessage
 }
 
-// Usage is the token usage of one turn.
+// Usage is the token usage of one turn, normalized across harnesses:
+// InputTokens excludes tokens read from the prompt cache, which are counted
+// in CacheReadTokens; CacheWriteTokens counts tokens written to the cache.
 type Usage struct {
-	InputTokens      int64
+	InputTokens      int64 // input tokens not read from the cache
 	OutputTokens     int64
-	CacheReadTokens  int64
-	CacheWriteTokens int64
+	CacheReadTokens  int64 // input tokens read from the cache
+	CacheWriteTokens int64 // input tokens written to the cache
 }
 
 // Outcome is what a finished run reports besides its messages.

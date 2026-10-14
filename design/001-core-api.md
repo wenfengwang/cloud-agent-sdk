@@ -246,6 +246,8 @@ type ToolResult struct {
 
 `ToolInput` and `ToolOutput` are sealed interfaces; consumers use a type switch. Each `ToolName` has one input type and one output type.
 
+Each `ToolName` constant is `ToolName` followed by the name in camel case (`ToolNameShell`, `ToolNameFileRead`, ..., `ToolNameMCP`, `ToolNameUnknown`). Input and output types are used as pointers (`*ShellInput`). Their fields are `string` except `TimeoutMs int64`, `Offset` and `Limit int`, `ReplaceAll bool`, `ExitCode *int`, and `MCPInput.Arguments`, `MCPOutput.Content`, and `Raw` (`json.RawMessage`). `FileChange.Kind` is `add`, `delete`, or `update`; `TodoItem.Status` is the harness's status string.
+
 | `ToolName` | Input | Output | Claude Code | Codex |
 |---|---|---|---|---|
 | `shell` | `ShellInput{Command, Description, TimeoutMs}` | `ShellOutput{Output, ExitCode *int}` | `Bash` | `commandExecution` |

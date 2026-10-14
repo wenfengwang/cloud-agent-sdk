@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. The public API, the turn lifecycle, the message buffer, and the `~/.cloudagent` index are implemented. The Claude Code and Codex adapters are not: `Turn` fails with a start error for both harnesses until they are.
+Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented and verified offline against fixtures recorded from the pinned CLIs. The real CLI tests of [Testing](#testing) are not built yet.
 
 ## Why
 
@@ -184,7 +184,7 @@ type Usage struct {
 - `Result` blocks until the turn ends and returns the same values on every call. It returns `ErrTerminated` after `Terminate`, `ctx.Err()` after cancellation, and a wrapped harness error after a failure.
 - `Terminate` requests a graceful stop and returns without waiting; call `Result` to wait. Calling it on a finished turn is a no-op.
 
-`Usage` counts tokens the same way for both harnesses. `InputTokens` excludes input read from the prompt cache, `CacheReadTokens` counts input read from the cache, and `CacheWriteTokens` counts input written to it. Codex reports cached input as part of its input count, so its `InputTokens` is `input_tokens - cached_input_tokens`; Claude Code reports the three counts separately.
+`Usage` counts tokens the same way for both harnesses. `InputTokens` excludes input read from the prompt cache, `CacheReadTokens` counts input read from the cache, and `CacheWriteTokens` counts input written to it. Codex reports cached input as part of its input count, so its `InputTokens` is `input_tokens - cached_input_tokens`; Claude Code reports the three counts separately. On both harnesses `Usage` counts the turn's own conversation: tokens a subagent spends are not included.
 
 ### Errors
 
@@ -293,18 +293,20 @@ Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imag
 
 ### Live and read-back differences
 
-A finished turn is read back from the harness home, which does not hold everything the harness streamed. These differences between a live read and a read-back are known:
+A finished turn is read back from the harness home, which does not hold everything the harness streamed. A read-back yields the same messages, with the same IDs and in the same order, as the live turn, except for these differences:
 
 | Harness | Difference |
 |---|---|
+| Both | `Raw` holds the harness JSON the message was read from: the stream line or notification live, the transcript entry or rollout item in a read-back |
 | Claude Code | The read-back includes the subagent's final assistant message, with `ParentToolUseID` set, which is never streamed live |
+| Codex | `UnknownInput.Raw` and `UnknownOutput.Raw` hold the rollout's item JSON instead of the app-server item |
 
 ## Harness Behavior
 
 | | Claude Code | Codex |
 |---|---|---|
 | Version | Pinned in [harness-versions.json](../harness-versions.json) | Pinned in [harness-versions.json](../harness-versions.json); protocol committed as [app-server.v2.schema.json](../internal/codex/schema/app-server.v2.schema.json) |
-| Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose --replay-user-messages`, with `--resume <session-id>` after the first turn | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` (first turn) or the existing thread, then `turn/start` per turn |
+| Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose --replay-user-messages`, with `--session-id <session-id>` on the first turn (the adapter generates the ID) and `--resume <session-id>` once the session's transcript exists | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` on the first turn or `thread/resume` when a new process continues the thread, then `turn/start` per turn |
 | Client identity | — | `initialize` sends `clientInfo` with name `codex_cli_rs`, the pinned CLI's default originator, and title `cloudagent` |
 | Turn accepted | The CLI echoed the prompt back as a user message; the echo supplies `user_message_uuid` | `turn/start` returned |
 | Reasoning | `thinking` blocks as the harness emits them | `turn/start` requests reasoning summaries with `summary: "auto"` |
@@ -360,7 +362,3 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
 - **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`. They fail, rather than skip, when an installed CLI's version differs from its pin.
-
-## Open Questions
-
-- **Read-back differences.** Codex documents its persisted items as lossy. Differences beyond those in [Live and read-back differences](#live-and-read-back-differences) are not yet known and must be added there once the adapters' read-back tests establish them.

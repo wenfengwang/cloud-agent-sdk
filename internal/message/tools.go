@@ -19,7 +19,6 @@ const (
 	ToolNameWebSearch ToolName = "web_search"
 	ToolNameMCP       ToolName = "mcp"
 	ToolNameSubagent  ToolName = "subagent"
-	ToolNameTodo      ToolName = "todo"
 	ToolNameUnknown   ToolName = "unknown"
 )
 
@@ -112,18 +111,6 @@ type SubagentInput struct {
 	Type        string
 }
 
-// TodoInput is the input of a todo tool call.
-type TodoInput struct {
-	Items []TodoItem
-}
-
-// TodoItem is one entry of a todo list. Status is the harness's status
-// string, for example "pending", "in_progress", or "completed".
-type TodoItem struct {
-	Text   string
-	Status string
-}
-
 // UnknownInput is the input of a tool call that has no canonical mapping.
 // Raw is the harness's input JSON.
 type UnknownInput struct {
@@ -170,7 +157,6 @@ func (*WebFetchInput) isToolInput()  {}
 func (*WebSearchInput) isToolInput() {}
 func (*MCPInput) isToolInput()       {}
 func (*SubagentInput) isToolInput()  {}
-func (*TodoInput) isToolInput()      {}
 func (*UnknownInput) isToolInput()   {}
 
 func (*ShellOutput) isToolOutput()    {}

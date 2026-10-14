@@ -63,10 +63,6 @@ var scenarios = []Scenario{
 		Seed:    map[string]string{"notes.txt": notesFile},
 	},
 	{
-		Name:    "todo",
-		Prompts: []string{"Track this three-step plan as a todo list with your todo tool, then complete the steps in order, updating the list as you go: 1. say alpha, 2. say bravo, 3. say charlie. Use no other tool."},
-	},
-	{
 		Name:    "terminate",
 		Prompts: []string{"Run the shell command `sleep 30`, then reply with done."},
 		TerminateWhen: func(m message.Message) bool {

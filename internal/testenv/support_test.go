@@ -204,7 +204,7 @@ func TestGolden(t *testing.T) {
 }
 
 func TestScenarios(t *testing.T) {
-	want := []string{"text", "shell", "read-file", "write-file", "edit-file", "glob-grep", "subagent", "todo", "terminate", "two-turn"}
+	want := []string{"text", "shell", "read-file", "write-file", "edit-file", "glob-grep", "subagent", "terminate", "two-turn"}
 	var names []string
 	for _, s := range Scenarios() {
 		names = append(names, s.Name)

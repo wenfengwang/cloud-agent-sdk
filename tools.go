@@ -19,7 +19,6 @@ const (
 	ToolNameWebSearch ToolName = message.ToolNameWebSearch // WebSearchInput, TextOutput
 	ToolNameMCP       ToolName = message.ToolNameMCP       // MCPInput, MCPOutput
 	ToolNameSubagent  ToolName = message.ToolNameSubagent  // SubagentInput, TextOutput
-	ToolNameTodo      ToolName = message.ToolNameTodo      // TodoInput, TextOutput
 	ToolNameUnknown   ToolName = message.ToolNameUnknown   // UnknownInput, UnknownOutput
 )
 
@@ -71,12 +70,6 @@ type MCPInput = message.MCPInput
 // SubagentInput is the input of a subagent call: Description, Prompt, and
 // Type.
 type SubagentInput = message.SubagentInput
-
-// TodoInput is the input of a todo call: the list of Items.
-type TodoInput = message.TodoInput
-
-// TodoItem is one entry of a todo list: Text and the harness's Status.
-type TodoItem = message.TodoItem
 
 // UnknownInput is the input of a tool without a canonical mapping: the
 // harness's Raw input JSON.

@@ -35,10 +35,9 @@ func TestToolNameValues(t *testing.T) {
 		cloudagent.ToolNameWebSearch: "web_search",
 		cloudagent.ToolNameMCP:       "mcp",
 		cloudagent.ToolNameSubagent:  "subagent",
-		cloudagent.ToolNameTodo:      "todo",
 		cloudagent.ToolNameUnknown:   "unknown",
 	}
-	if len(want) != 13 {
+	if len(want) != 12 {
 		t.Fatalf("tool names are not distinct: %d", len(want))
 	}
 	for k, v := range want {
@@ -74,8 +73,6 @@ func inputName(in cloudagent.ToolInput) cloudagent.ToolName {
 		return cloudagent.ToolNameMCP
 	case *cloudagent.SubagentInput:
 		return cloudagent.ToolNameSubagent
-	case *cloudagent.TodoInput:
-		return cloudagent.ToolNameTodo
 	case *cloudagent.UnknownInput:
 		return cloudagent.ToolNameUnknown
 	}
@@ -112,7 +109,6 @@ func TestToolInputTypes(t *testing.T) {
 		cloudagent.ToolNameWebSearch: &cloudagent.WebSearchInput{Query: "q"},
 		cloudagent.ToolNameMCP:       &cloudagent.MCPInput{Server: "s", Tool: "t", Arguments: json.RawMessage(`{}`)},
 		cloudagent.ToolNameSubagent:  &cloudagent.SubagentInput{Description: "d", Prompt: "p", Type: "general"},
-		cloudagent.ToolNameTodo:      &cloudagent.TodoInput{Items: []cloudagent.TodoItem{{Text: "a", Status: "pending"}}},
 		cloudagent.ToolNameUnknown:   &cloudagent.UnknownInput{Raw: json.RawMessage(`{}`)},
 	}
 	for name, in := range cases {

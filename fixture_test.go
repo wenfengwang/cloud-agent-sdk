@@ -50,11 +50,12 @@ type replayEnv struct {
 
 // newReplay isolates the test and scripts the fake to replay the fixture of
 // scenario for h, one invocation per recorded process. The fixture's harness
-// home files reach the harness home as the real CLI writes them: Claude
-// transcripts when the last process ends its traffic, Codex rollouts before
-// the first turn, since Codex creates them with the thread. edit, if not nil,
-// may change the invocations.
-func newReplay(t *testing.T, h cloudagent.Harness, scenario string, edit func([]fakeharness.Invocation) []fakeharness.Invocation) *replayEnv {
+// home files reach the harness home before the turn ends, as with the real
+// CLI: Claude transcripts when the last process ends its traffic, Codex
+// rollouts before the first turn, since Codex writes them while the turn
+// runs. edit, if not nil, may change the invocations; it receives the
+// environment so that it can locate lines of the fixture.
+func newReplay(t *testing.T, h cloudagent.Harness, scenario string, edit func(*replayEnv, []fakeharness.Invocation) []fakeharness.Invocation) *replayEnv {
 	t.Helper()
 	e := &replayEnv{harness: h, dir: filepath.Join("internal", adapterPackage[h], "testdata", scenario)}
 	rec, err := testenv.ReadFixture(e.dir)
@@ -92,7 +93,7 @@ func newReplay(t *testing.T, h cloudagent.Harness, scenario string, edit func([]
 		testenv.CopyHome(t, e.dir, e.harnessHome, values)
 	}
 	if edit != nil {
-		invs = edit(invs)
+		invs = edit(e, invs)
 	}
 	script.Invocations = invs
 	e.state = fakeharness.Use(t, fakeBin, script)
@@ -314,4 +315,18 @@ func resolved(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return r
+}
+
+// agentRecord reads the agent's agent.json.
+func (e *replayEnv) agentRecord(t *testing.T, a *cloudagent.AgentRuntime) map[string]string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(e.indexDir(a), "agent.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rec map[string]string
+	if err := json.Unmarshal(data, &rec); err != nil {
+		t.Fatalf("parse agent.json: %v", err)
+	}
+	return rec
 }

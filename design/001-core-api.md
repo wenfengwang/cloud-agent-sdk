@@ -294,6 +294,8 @@ Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imag
 | Transcript | `<home>/projects/<encoded-workdir>/<session-id>.jsonl` | `<home>/sessions/<yyyy>/<mm>/<dd>/rollout-*-<thread-id>.jsonl` |
 | Turn reference | `{session_id, user_message_uuid}` | `{thread_id, turn_id}` |
 
+Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecognized configuration settings") as items of type `error` in its event stream. They are warnings, not turn failures: the adapter neither fails the turn on them nor emits them as messages.
+
 ## Data Model
 
 ```

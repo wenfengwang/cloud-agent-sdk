@@ -49,7 +49,7 @@ var (
 // conversation. It is safe for concurrent use; at most one turn is active at
 // a time.
 type AgentRuntime struct {
-	rt *agent.Runtime
+	runtime *agent.Runtime
 }
 
 // New validates opts, assigns an agent ID, and writes the agent's entry under
@@ -88,15 +88,15 @@ func New(h Harness, opts Options) (*AgentRuntime, error) {
 		return nil, fmt.Errorf("cloudagent: unknown harness %q", h)
 	}
 
-	rt, err := agent.New(agent.Config{Harness: string(h), Model: opts.Model, WorkDir: workDir, Home: home, Adapter: adapter})
+	runtime, err := agent.New(agent.Config{Harness: string(h), Model: opts.Model, WorkDir: workDir, Home: home, Adapter: adapter})
 	if err != nil {
 		return nil, err
 	}
-	return &AgentRuntime{rt: rt}, nil
+	return &AgentRuntime{runtime: runtime}, nil
 }
 
 // ID returns the agent ID, a UUIDv7.
-func (a *AgentRuntime) ID() string { return a.rt.ID() }
+func (a *AgentRuntime) ID() string { return a.runtime.ID() }
 
 // Turn starts one turn and returns as soon as the harness has accepted the
 // prompt. It returns a start error when the agent is closed (ErrClosed),
@@ -109,11 +109,11 @@ func (a *AgentRuntime) ID() string { return a.rt.ID() }
 // harness to accept the prompt makes Turn return ctx.Err(); the prompt may
 // already have entered the harness conversation.
 func (a *AgentRuntime) Turn(ctx context.Context, prompt string, opts TurnOptions) (*Turn, error) {
-	t, err := a.rt.Turn(ctx, prompt)
+	turn, err := a.runtime.Turn(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
-	return &Turn{t: t}, nil
+	return &Turn{turn: turn}, nil
 }
 
 // Close stops the active turn, if any, through the graceful stop path, waits
@@ -121,4 +121,4 @@ func (a *AgentRuntime) Turn(ctx context.Context, prompt string, opts TurnOptions
 // ErrClosed. A Turn call still waiting for the harness to accept its prompt
 // is cancelled and returns ErrClosed. Close is idempotent; afterwards Turn fails with ErrClosed, and
 // turns that already ended can still be read.
-func (a *AgentRuntime) Close() error { return a.rt.Close() }
+func (a *AgentRuntime) Close() error { return a.runtime.Close() }

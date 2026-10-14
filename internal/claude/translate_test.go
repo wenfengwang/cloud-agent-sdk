@@ -118,13 +118,13 @@ func readFixture(t *testing.T, dir string) testenv.Recorded {
 
 func translateTraffic(t *testing.T, traffic []fakeharness.TrafficLine) []message.Message {
 	t.Helper()
-	tr := newTranslator()
+	translator := newTranslator()
 	var out []message.Message
 	for _, l := range traffic {
 		if l.Dir != fakeharness.DirRecv {
 			continue
 		}
-		msgs, err := tr.streamLine(l.Line)
+		msgs, err := translator.streamLine(l.Line)
 		if err != nil {
 			t.Fatalf("translate %s: %v", l.Line, err)
 		}

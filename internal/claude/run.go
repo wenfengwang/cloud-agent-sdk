@@ -178,13 +178,13 @@ func (r *run) read() {
 		close(r.msgs)
 		close(r.readDone)
 	}()
-	tr := newTranslator()
+	translator := newTranslator()
 	br := bufio.NewReader(r.stdout)
 	for {
 		line, readErr := br.ReadBytes('\n')
 		if line = bytes.TrimSpace(line); len(line) > 0 {
 			r.h.observe(dirRecv, line)
-			if err := r.handle(tr, line); err != nil && r.err == nil {
+			if err := r.handle(translator, line); err != nil && r.err == nil {
 				r.err = err
 			}
 		}
@@ -195,7 +195,7 @@ func (r *run) read() {
 }
 
 // handle processes one stdout line.
-func (r *run) handle(tr *translator, line []byte) error {
+func (r *run) handle(translator *translator, line []byte) error {
 	var head struct {
 		Type     string `json:"type"`
 		UUID     string `json:"uuid"`
@@ -222,12 +222,12 @@ func (r *run) handle(tr *translator, line []byte) error {
 			return fmt.Errorf("claude: encode turn reference: %w", err)
 		}
 		r.ref.Data = data
-		msgs, err := tr.streamLine(line)
+		msgs, err := translator.streamLine(line)
 		close(r.accepted)
 		r.forward(msgs)
 		return err
 	}
-	msgs, err := tr.streamLine(line)
+	msgs, err := translator.streamLine(line)
 	r.forward(msgs)
 	return err
 }

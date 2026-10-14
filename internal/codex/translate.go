@@ -115,36 +115,36 @@ func newTranslator() *translator {
 }
 
 // follows reports whether thread is a subagent thread of this turn.
-func (tr *translator) follows(thread string) bool {
-	_, ok := tr.spawns[thread]
+func (t *translator) follows(thread string) bool {
+	_, ok := t.spawns[thread]
 	return ok
 }
 
 // itemStarted translates an item/started notification of thread; raw is
 // the whole notification line, which becomes Message.Raw.
-func (tr *translator) itemStarted(thread string, it item, itemJSON, raw json.RawMessage) []message.Message {
+func (t *translator) itemStarted(thread string, it item, itemJSON, raw json.RawMessage) []message.Message {
 	switch {
 	case it.Type == itemSubAgent:
-		return tr.subAgent(thread, it, raw)
-	case isToolItem(it.Type) && !tr.started[it.ID]:
-		tr.started[it.ID] = true
-		return tr.parented(thread, toolCall(it, itemJSON, raw))
+		return t.subAgent(thread, it, raw)
+	case isToolItem(it.Type) && !t.started[it.ID]:
+		t.started[it.ID] = true
+		return t.parented(thread, toolCall(it, itemJSON, raw))
 	}
 	return nil
 }
 
 // itemCompleted translates an item/completed notification of thread.
-func (tr *translator) itemCompleted(thread string, it item, itemJSON, raw json.RawMessage) []message.Message {
+func (t *translator) itemCompleted(thread string, it item, itemJSON, raw json.RawMessage) []message.Message {
 	if it.Type == itemSubAgent {
-		return tr.subAgent(thread, it, raw)
+		return t.subAgent(thread, it, raw)
 	}
 	if isToolItem(it.Type) {
 		var out []message.Message
-		if !tr.started[it.ID] {
-			tr.started[it.ID] = true
+		if !t.started[it.ID] {
+			t.started[it.ID] = true
 			out = append(out, toolCall(it, itemJSON, raw))
 		}
-		return tr.parented(thread, append(out, toolResult(it, itemJSON, raw))...)
+		return t.parented(thread, append(out, toolResult(it, itemJSON, raw))...)
 	}
 	switch it.Type {
 	case itemUserMessage:
@@ -156,16 +156,16 @@ func (tr *translator) itemCompleted(thread string, it item, itemJSON, raw json.R
 				texts = append(texts, in.Text)
 			}
 		}
-		return tr.parented(thread, message.Message{ID: it.ID, Kind: message.KindUser, User: &message.Text{Text: strings.Join(texts, "\n")}, Raw: raw})
+		return t.parented(thread, message.Message{ID: it.ID, Kind: message.KindUser, User: &message.Text{Text: strings.Join(texts, "\n")}, Raw: raw})
 	case itemAgentMessage:
-		tr.lastText[thread] = it.Text
-		return tr.parented(thread, message.Message{ID: it.ID, Kind: message.KindAssistant, Assistant: &message.Text{Text: it.Text}, Raw: raw})
+		t.lastText[thread] = it.Text
+		return t.parented(thread, message.Message{ID: it.ID, Kind: message.KindAssistant, Assistant: &message.Text{Text: it.Text}, Raw: raw})
 	case itemReasoning:
 		text := strings.Join(it.Summary, "\n\n")
 		if text == "" {
 			return nil
 		}
-		return tr.parented(thread, message.Message{ID: it.ID, Kind: message.KindReasoning, Reasoning: &message.Text{Text: text}, Raw: raw})
+		return t.parented(thread, message.Message{ID: it.ID, Kind: message.KindReasoning, Reasoning: &message.Text{Text: text}, Raw: raw})
 	}
 	return nil
 }
@@ -174,31 +174,31 @@ func (tr *translator) itemCompleted(thread string, it item, itemJSON, raw json.R
 // and when it completes. Kind started is the subagent call, whose ID is the
 // spawn call's ID; kind completed is its result, whose text is the
 // subagent's last agentMessage. Other kinds are not emitted.
-func (tr *translator) subAgent(thread string, it item, raw json.RawMessage) []message.Message {
-	if tr.started[it.ID] {
+func (t *translator) subAgent(thread string, it item, raw json.RawMessage) []message.Message {
+	if t.started[it.ID] {
 		return nil
 	}
 	switch it.Kind {
 	case subAgentStarted:
-		tr.started[it.ID] = true
-		tr.spawns[it.AgentThreadID] = it.ID
-		return tr.parented(thread, message.Message{
+		t.started[it.ID] = true
+		t.spawns[it.AgentThreadID] = it.ID
+		return t.parented(thread, message.Message{
 			ID:       it.ID,
 			Kind:     message.KindToolCall,
 			ToolCall: &message.ToolCall{ID: it.ID, Name: message.ToolNameSubagent, RawName: it.Type, Input: &message.SubagentInput{Description: it.AgentPath}},
 			Raw:      raw,
 		})
 	case subAgentCompleted:
-		call, ok := tr.spawns[it.AgentThreadID]
+		call, ok := t.spawns[it.AgentThreadID]
 		if !ok {
 			// Started by an earlier turn: there is no call to answer.
 			return nil
 		}
-		tr.started[it.ID] = true
-		return tr.parented(thread, message.Message{
+		t.started[it.ID] = true
+		return t.parented(thread, message.Message{
 			ID:         it.ID,
 			Kind:       message.KindToolResult,
-			ToolResult: &message.ToolResult{CallID: call, Name: message.ToolNameSubagent, Output: &message.TextOutput{Text: tr.lastText[it.AgentThreadID]}},
+			ToolResult: &message.ToolResult{CallID: call, Name: message.ToolNameSubagent, Output: &message.TextOutput{Text: t.lastText[it.AgentThreadID]}},
 			Raw:        raw,
 		})
 	}
@@ -206,8 +206,8 @@ func (tr *translator) subAgent(thread string, it item, raw json.RawMessage) []me
 }
 
 // parented sets ParentToolUseID on messages of a subagent thread.
-func (tr *translator) parented(thread string, msgs ...message.Message) []message.Message {
-	parent := tr.spawns[thread]
+func (t *translator) parented(thread string, msgs ...message.Message) []message.Message {
+	parent := t.spawns[thread]
 	for i := range msgs {
 		msgs[i].ParentToolUseID = parent
 	}

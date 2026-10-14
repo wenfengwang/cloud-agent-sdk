@@ -36,9 +36,9 @@ func TestReadBack(t *testing.T) {
 				}
 			}
 			h := New(harness.Config{WorkDir: workDir, Home: home})
-			for i, rt := range fixtureTurns(t, rec) {
-				data, _ := json.Marshal(map[string]string{"thread_id": rt.thread, "turn_id": rt.turn})
-				got, err := h.ReadTurn(context.Background(), harness.Ref{SessionID: rt.thread, Data: data})
+			for i, recorded := range fixtureTurns(t, rec) {
+				data, _ := json.Marshal(map[string]string{"thread_id": recorded.thread, "turn_id": recorded.turn})
+				got, err := h.ReadTurn(context.Background(), harness.Ref{SessionID: recorded.thread, Data: data})
 				if err != nil {
 					t.Fatalf("turn %d: %v", i+1, err)
 				}
@@ -49,7 +49,7 @@ func TestReadBack(t *testing.T) {
 				}
 				// Tool items of one millisecond may be read back in another
 				// order (design 001).
-				got, live := testenv.SameMillisecondOrder(got), testenv.SameMillisecondOrder(rt.msgs)
+				got, live := testenv.SameMillisecondOrder(got), testenv.SameMillisecondOrder(recorded.msgs)
 				if want := withoutRaw(live); !reflect.DeepEqual(withoutRaw(got), want) {
 					t.Fatalf("turn %d read back as\n%s\nlive\n%s", i+1, kinds(got), kinds(live))
 				}

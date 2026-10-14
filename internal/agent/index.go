@@ -52,71 +52,71 @@ func createIndex(agentID string, rec agentRecord) (*index, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cloudagent: locate home directory: %w", err)
 	}
-	ix := &index{dir: filepath.Join(home, ".cloudagent", "agents", agentID), agent: rec}
-	if err := os.MkdirAll(ix.dir, 0o700); err != nil {
+	index := &index{dir: filepath.Join(home, ".cloudagent", "agents", agentID), agent: rec}
+	if err := os.MkdirAll(index.dir, 0o700); err != nil {
 		return nil, fmt.Errorf("cloudagent: create index: %w", err)
 	}
-	if err := ix.writeAgent(); err != nil {
+	if err := index.writeAgent(); err != nil {
 		return nil, err
 	}
-	if err := ix.writeTurns(); err != nil {
+	if err := index.writeTurns(); err != nil {
 		return nil, err
 	}
-	return ix, nil
+	return index, nil
 }
 
 // startTurn appends a running turn and records the harness session.
-func (ix *index) startTurn(turnID string, ref json.RawMessage, sessionID string, startedAt time.Time) error {
-	ix.mu.Lock()
-	defer ix.mu.Unlock()
-	if err := ix.setSession(sessionID); err != nil {
+func (i *index) startTurn(turnID string, ref json.RawMessage, sessionID string, startedAt time.Time) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if err := i.setSession(sessionID); err != nil {
 		return err
 	}
-	ix.turns = append(ix.turns, turnRecord{TurnID: turnID, HarnessRef: ref, Status: statusRunning, StartedAt: startedAt.UTC()})
-	if err := ix.writeTurns(); err != nil {
-		ix.turns = ix.turns[:len(ix.turns)-1]
+	i.turns = append(i.turns, turnRecord{TurnID: turnID, HarnessRef: ref, Status: statusRunning, StartedAt: startedAt.UTC()})
+	if err := i.writeTurns(); err != nil {
+		i.turns = i.turns[:len(i.turns)-1]
 		return err
 	}
 	return nil
 }
 
 // endTurn records a turn's final reference and status.
-func (ix *index) endTurn(turnID string, ref json.RawMessage, sessionID, status string, endedAt time.Time) error {
-	ix.mu.Lock()
-	defer ix.mu.Unlock()
-	if err := ix.setSession(sessionID); err != nil {
+func (i *index) endTurn(turnID string, ref json.RawMessage, sessionID, status string, endedAt time.Time) error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if err := i.setSession(sessionID); err != nil {
 		return err
 	}
 	ended := endedAt.UTC()
-	for i := range ix.turns {
-		if ix.turns[i].TurnID == turnID {
-			ix.turns[i].HarnessRef = ref
-			ix.turns[i].Status = status
-			ix.turns[i].EndedAt = &ended
+	for n := range i.turns {
+		if i.turns[n].TurnID == turnID {
+			i.turns[n].HarnessRef = ref
+			i.turns[n].Status = status
+			i.turns[n].EndedAt = &ended
 		}
 	}
-	return ix.writeTurns()
+	return i.writeTurns()
 }
 
-func (ix *index) setSession(sessionID string) error {
-	if sessionID == "" || sessionID == ix.agent.HarnessSessionID {
+func (i *index) setSession(sessionID string) error {
+	if sessionID == "" || sessionID == i.agent.HarnessSessionID {
 		return nil
 	}
-	ix.agent.HarnessSessionID = sessionID
-	return ix.writeAgent()
+	i.agent.HarnessSessionID = sessionID
+	return i.writeAgent()
 }
 
-func (ix *index) writeAgent() error {
-	data, err := json.Marshal(ix.agent)
+func (i *index) writeAgent() error {
+	data, err := json.Marshal(i.agent)
 	if err != nil {
 		return fmt.Errorf("cloudagent: encode agent.json: %w", err)
 	}
-	return writeAtomic(filepath.Join(ix.dir, "agent.json"), append(data, '\n'))
+	return writeAtomic(filepath.Join(i.dir, "agent.json"), append(data, '\n'))
 }
 
-func (ix *index) writeTurns() error {
+func (i *index) writeTurns() error {
 	var buf bytes.Buffer
-	for _, t := range ix.turns {
+	for _, t := range i.turns {
 		data, err := json.Marshal(t)
 		if err != nil {
 			return fmt.Errorf("cloudagent: encode turns.jsonl: %w", err)
@@ -124,7 +124,7 @@ func (ix *index) writeTurns() error {
 		buf.Write(data)
 		buf.WriteByte('\n')
 	}
-	return writeAtomic(filepath.Join(ix.dir, "turns.jsonl"), buf.Bytes())
+	return writeAtomic(filepath.Join(i.dir, "turns.jsonl"), buf.Bytes())
 }
 
 // writeAtomic replaces path with data through a temporary file and a rename.

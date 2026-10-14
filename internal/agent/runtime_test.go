@@ -21,7 +21,7 @@ import (
 func newTestRuntime(t *testing.T, h *fakeHarness) *Runtime {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
-	rt, err := New(Config{
+	runtime, err := New(Config{
 		Harness:   "claude",
 		Model:     "test-model",
 		WorkDir:   "/work",
@@ -32,18 +32,18 @@ func newTestRuntime(t *testing.T, h *fakeHarness) *Runtime {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	t.Cleanup(func() { rt.Close() })
-	return rt
+	t.Cleanup(func() { runtime.Close() })
+	return runtime
 }
 
-func indexDir(t *testing.T, rt *Runtime) string {
+func indexDir(t *testing.T, runtime *Runtime) string {
 	t.Helper()
-	return filepath.Join(os.Getenv("HOME"), ".cloudagent", "agents", rt.ID())
+	return filepath.Join(os.Getenv("HOME"), ".cloudagent", "agents", runtime.ID())
 }
 
-func readAgentJSON(t *testing.T, rt *Runtime) map[string]any {
+func readAgentJSON(t *testing.T, runtime *Runtime) map[string]any {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(indexDir(t, rt), "agent.json"))
+	data, err := os.ReadFile(filepath.Join(indexDir(t, runtime), "agent.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,9 +54,9 @@ func readAgentJSON(t *testing.T, rt *Runtime) map[string]any {
 	return m
 }
 
-func readTurns(t *testing.T, rt *Runtime) []map[string]any {
+func readTurns(t *testing.T, runtime *Runtime) []map[string]any {
 	t.Helper()
-	f, err := os.Open(filepath.Join(indexDir(t, rt), "turns.jsonl"))
+	f, err := os.Open(filepath.Join(indexDir(t, runtime), "turns.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,13 +94,13 @@ func ids(msgs []message.Message) []string {
 }
 
 func TestNewWritesAgentIndex(t *testing.T) {
-	rt := newTestRuntime(t, &fakeHarness{})
+	runtime := newTestRuntime(t, &fakeHarness{})
 
-	id, err := uuid.Parse(rt.ID())
+	id, err := uuid.Parse(runtime.ID())
 	if err != nil || id.Version() != 7 {
-		t.Fatalf("ID %q is not a UUIDv7 (err %v)", rt.ID(), err)
+		t.Fatalf("ID %q is not a UUIDv7 (err %v)", runtime.ID(), err)
 	}
-	got := readAgentJSON(t, rt)
+	got := readAgentJSON(t, runtime)
 	want := map[string]any{
 		"harness": "claude", "model": "test-model", "workdir": "/work",
 		"home": "/harness-home", "harness_session_id": "",
@@ -108,7 +108,7 @@ func TestNewWritesAgentIndex(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("agent.json = %v, want %v", got, want)
 	}
-	if turns := readTurns(t, rt); len(turns) != 0 {
+	if turns := readTurns(t, runtime); len(turns) != 0 {
 		t.Fatalf("turns.jsonl has %d lines, want 0", len(turns))
 	}
 }
@@ -137,9 +137,9 @@ func TestTurnCompletes(t *testing.T) {
 		usage: harness.Usage{InputTokens: 10, OutputTokens: 5, CacheReadTokens: 2, CacheWriteTokens: 1},
 	}
 	h := &fakeHarness{runs: []*fakeRun{run}}
-	rt := newTestRuntime(t, h)
+	runtime := newTestRuntime(t, h)
 
-	turn, err := rt.Turn(context.Background(), "say hi")
+	turn, err := runtime.Turn(context.Background(), "say hi")
 	if err != nil {
 		t.Fatalf("Turn: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestTurnCompletes(t *testing.T) {
 		t.Fatalf("prompt = %q", h.prompts[0])
 	}
 
-	turns := readTurns(t, rt)
+	turns := readTurns(t, runtime)
 	if len(turns) != 1 {
 		t.Fatalf("turns.jsonl has %d lines, want 1", len(turns))
 	}
@@ -191,15 +191,15 @@ func TestTurnCompletes(t *testing.T) {
 	if len(rec) != 5 {
 		t.Fatalf("turn record has fields %v, want exactly 5", rec)
 	}
-	if got := readAgentJSON(t, rt)["harness_session_id"]; got != "s1" {
+	if got := readAgentJSON(t, runtime)["harness_session_id"]; got != "s1" {
 		t.Fatalf("harness_session_id = %v, want s1", got)
 	}
 }
 
 func TestTurnRunsWithoutConsumer(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{userMsg("m1", "p"), assistantMsg("m2", "", "done")}}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,19 +211,19 @@ func TestTurnRunsWithoutConsumer(t *testing.T) {
 
 func TestTurnRecordsRunningStatus(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), hold: true}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
-	turns := readTurns(t, rt)
+	turns := readTurns(t, runtime)
 	if len(turns) != 1 || turns[0]["status"] != "running" || turns[0]["ended_at"] != nil {
 		t.Fatalf("turns while running = %v", turns)
 	}
 	if hr, _ := json.Marshal(turns[0]["harness_ref"]); string(hr) != `{"session_id":"s1","user_message_uuid":"u1"}` {
 		t.Fatalf("harness_ref = %s", hr)
 	}
-	if got := readAgentJSON(t, rt)["harness_session_id"]; got != "s1" {
+	if got := readAgentJSON(t, runtime)["harness_session_id"]; got != "s1" {
 		t.Fatalf("harness_session_id while running = %v", got)
 	}
 	turn.Terminate()
@@ -233,19 +233,19 @@ func TestTurnRecordsRunningStatus(t *testing.T) {
 func TestTurnStartErrors(t *testing.T) {
 	startErr := errors.New("harness rejected the prompt")
 	h := &fakeHarness{runs: []*fakeRun{{startErr: startErr}, {ref: ref("s1", "u1")}}}
-	rt := newTestRuntime(t, h)
+	runtime := newTestRuntime(t, h)
 
-	if _, err := rt.Turn(context.Background(), ""); err == nil {
+	if _, err := runtime.Turn(context.Background(), ""); err == nil {
 		t.Fatal("Turn with an empty prompt succeeded")
 	}
-	_, err := rt.Turn(context.Background(), "p")
+	_, err := runtime.Turn(context.Background(), "p")
 	if !errors.Is(err, startErr) {
 		t.Fatalf("Turn = %v, want wrapped %v", err, startErr)
 	}
-	if turns := readTurns(t, rt); len(turns) != 0 {
+	if turns := readTurns(t, runtime); len(turns) != 0 {
 		t.Fatalf("start error recorded a turn: %v", turns)
 	}
-	turn, err := rt.Turn(context.Background(), "p")
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatalf("Turn after a start error: %v", err)
 	}
@@ -257,20 +257,20 @@ func TestTurnStartErrors(t *testing.T) {
 func TestSingleActiveTurn(t *testing.T) {
 	first := &fakeRun{ref: ref("s1", "u1"), hold: true}
 	second := &fakeRun{ref: ref("s1", "u2")}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{first, second}})
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{first, second}})
 
-	turn, err := rt.Turn(context.Background(), "p")
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := rt.Turn(context.Background(), "q"); !errors.Is(err, ErrTurnInProgress) {
+	if _, err := runtime.Turn(context.Background(), "q"); !errors.Is(err, ErrTurnInProgress) {
 		t.Fatalf("second Turn = %v, want ErrTurnInProgress", err)
 	}
 	turn.Terminate()
 	if _, err := turn.Result(); !errors.Is(err, ErrTerminated) {
 		t.Fatalf("Result = %v, want ErrTerminated", err)
 	}
-	next, err := rt.Turn(context.Background(), "q")
+	next, err := runtime.Turn(context.Background(), "q")
 	if err != nil {
 		t.Fatalf("Turn after the first ended: %v", err)
 	}
@@ -281,8 +281,8 @@ func TestSingleActiveTurn(t *testing.T) {
 
 func TestTerminate(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{userMsg("m1", "p"), shellCall("c1", "sleep 30")}, hold: true}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestTerminate(t *testing.T) {
 	if run.interrupts.Load() == 0 || run.kills.Load() != 0 {
 		t.Fatalf("interrupts %d kills %d, want a graceful stop", run.interrupts.Load(), run.kills.Load())
 	}
-	if status := readTurns(t, rt)[0]["status"]; status != "terminated" {
+	if status := readTurns(t, runtime)[0]["status"]; status != "terminated" {
 		t.Fatalf("status = %v", status)
 	}
 	if err := turn.Terminate(); err != nil {
@@ -319,8 +319,8 @@ func TestTerminate(t *testing.T) {
 
 func TestTerminateAfterCompletionIsNoOp(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{assistantMsg("m1", "", "ok")}}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,10 +347,10 @@ func TestContextCancellation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			run := &fakeRun{ref: ref("s1", "u1"), hold: true}
-			rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+			runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
 			ctx, cancel := tc.ctx()
 			defer cancel()
-			turn, err := rt.Turn(ctx, "p")
+			turn, err := runtime.Turn(ctx, "p")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -363,7 +363,7 @@ func TestContextCancellation(t *testing.T) {
 			if run.interrupts.Load() == 0 {
 				t.Fatal("cancellation did not interrupt the run")
 			}
-			if status := readTurns(t, rt)[0]["status"]; status != "cancelled" {
+			if status := readTurns(t, runtime)[0]["status"]; status != "cancelled" {
 				t.Fatalf("status = %v", status)
 			}
 		})
@@ -373,12 +373,12 @@ func TestContextCancellation(t *testing.T) {
 func TestCloseDuringTurn(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{userMsg("m1", "p")}, hold: true}
 	h := &fakeHarness{runs: []*fakeRun{run}, readBack: []message.Message{userMsg("m1", "p")}}
-	rt := newTestRuntime(t, h)
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, h)
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := rt.Close(); err != nil {
+	if err := runtime.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
 	// Close waited for the turn: its result is already available.
@@ -396,16 +396,16 @@ func TestCloseDuringTurn(t *testing.T) {
 	if h.closeCount() != 1 {
 		t.Fatalf("harness Close called %d times, want 1", h.closeCount())
 	}
-	if status := readTurns(t, rt)[0]["status"]; status != "closed" {
+	if status := readTurns(t, runtime)[0]["status"]; status != "closed" {
 		t.Fatalf("status = %v", status)
 	}
-	if err := rt.Close(); err != nil {
+	if err := runtime.Close(); err != nil {
 		t.Fatalf("second Close: %v", err)
 	}
 	if h.closeCount() != 1 {
 		t.Fatal("second Close closed the harness again")
 	}
-	if _, err := rt.Turn(context.Background(), "q"); err != ErrClosed {
+	if _, err := runtime.Turn(context.Background(), "q"); err != ErrClosed {
 		t.Fatalf("Turn after Close = %v, want ErrClosed", err)
 	}
 	if got := ids(collect(t, turn)); !reflect.DeepEqual(got, []string{"m1"}) {
@@ -415,8 +415,8 @@ func TestCloseDuringTurn(t *testing.T) {
 
 func TestCloseWithoutTurn(t *testing.T) {
 	h := &fakeHarness{}
-	rt := newTestRuntime(t, h)
-	if err := rt.Close(); err != nil {
+	runtime := newTestRuntime(t, h)
+	if err := runtime.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if h.closeCount() != 1 {
@@ -461,7 +461,7 @@ func TestCloseDuringStart(t *testing.T) {
 		startEntered: make(chan struct{}),
 		startRelease: make(chan struct{}),
 	}
-	rt := newTestRuntime(t, h)
+	runtime := newTestRuntime(t, h)
 
 	type turnResult struct {
 		turn *Turn
@@ -469,12 +469,12 @@ func TestCloseDuringStart(t *testing.T) {
 	}
 	started := make(chan turnResult, 1)
 	go func() {
-		turn, err := rt.Turn(context.Background(), "p")
+		turn, err := runtime.Turn(context.Background(), "p")
 		started <- turnResult{turn, err}
 	}()
 	<-h.startEntered
 	closed := make(chan error, 1)
-	go func() { closed <- rt.Close() }()
+	go func() { closed <- runtime.Close() }()
 	// Close cannot finish while the start is in flight.
 	select {
 	case err := <-closed:
@@ -483,14 +483,14 @@ func TestCloseDuringStart(t *testing.T) {
 	}
 	close(h.startRelease)
 
-	tr := <-started
-	if tr.err != nil {
-		t.Fatalf("Turn = %v", tr.err)
+	got := <-started
+	if got.err != nil {
+		t.Fatalf("Turn = %v", got.err)
 	}
 	if err := <-closed; err != nil {
 		t.Fatalf("Close: %v", err)
 	}
-	if _, err := tr.turn.Result(); err != ErrClosed {
+	if _, err := got.turn.Result(); err != ErrClosed {
 		t.Fatalf("Result = %v, want ErrClosed", err)
 	}
 	if run.interrupts.Load() == 0 {
@@ -501,8 +501,8 @@ func TestCloseDuringStart(t *testing.T) {
 func TestHarnessFailure(t *testing.T) {
 	crash := errors.New("process exited with status 3")
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{userMsg("m1", "p")}, waitErr: crash}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -510,15 +510,15 @@ func TestHarnessFailure(t *testing.T) {
 	if !errors.Is(err, crash) || err == crash {
 		t.Fatalf("Result = %v, want a wrapped %v", err, crash)
 	}
-	if status := readTurns(t, rt)[0]["status"]; status != "failed" {
+	if status := readTurns(t, runtime)[0]["status"]; status != "failed" {
 		t.Fatalf("status = %v", status)
 	}
 }
 
 func TestIgnoredInterruptEscalatesToKill(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), hold: true, ignoreInterrupt: true}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -544,8 +544,8 @@ func TestConcurrentConsumers(t *testing.T) {
 		msgs = append(msgs, assistantMsg(string(rune('a'+i)), "", "x"))
 	}
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: msgs, pace: 5 * time.Millisecond}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -578,8 +578,8 @@ func TestConcurrentConsumers(t *testing.T) {
 
 func TestMessagesStopsWhenConsumerBreaks(t *testing.T) {
 	run := &fakeRun{ref: ref("s1", "u1"), msgs: []message.Message{userMsg("m1", "p"), assistantMsg("m2", "", "x")}, hold: true}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -600,8 +600,8 @@ func TestFinishedTurnIsReadBack(t *testing.T) {
 		runs:     []*fakeRun{run},
 		readBack: []message.Message{userMsg("m1", "p"), assistantMsg("m2", "", "stored")},
 	}
-	rt := newTestRuntime(t, h)
-	turn, err := rt.Turn(context.Background(), "p")
+	runtime := newTestRuntime(t, h)
+	turn, err := runtime.Turn(context.Background(), "p")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -634,14 +634,14 @@ func TestConversationContinuesAfterStop(t *testing.T) {
 	first := &fakeRun{ref: ref("s1", "u1"), hold: true}
 	second := &fakeRun{ref: ref("s1", "u2"), msgs: []message.Message{assistantMsg("m1", "", "still here")}}
 	h := &fakeHarness{runs: []*fakeRun{first, second}}
-	rt := newTestRuntime(t, h)
-	turn, err := rt.Turn(context.Background(), "remember x")
+	runtime := newTestRuntime(t, h)
+	turn, err := runtime.Turn(context.Background(), "remember x")
 	if err != nil {
 		t.Fatal(err)
 	}
 	turn.Terminate()
 	turn.Result()
-	next, err := rt.Turn(context.Background(), "what was x")
+	next, err := runtime.Turn(context.Background(), "what was x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -649,7 +649,7 @@ func TestConversationContinuesAfterStop(t *testing.T) {
 	if err != nil || res.FinalText != "still here" {
 		t.Fatalf("Result = %+v, %v", res, err)
 	}
-	turns := readTurns(t, rt)
+	turns := readTurns(t, runtime)
 	if len(turns) != 2 || turns[0]["status"] != "terminated" || turns[1]["status"] != "completed" {
 		t.Fatalf("turns = %v", turns)
 	}
@@ -664,8 +664,8 @@ func TestIndexHoldsNoContent(t *testing.T) {
 			assistantMsg("m2", "", "private answer text"),
 		},
 	}
-	rt := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
-	turn, err := rt.Turn(context.Background(), "secret prompt words")
+	runtime := newTestRuntime(t, &fakeHarness{runs: []*fakeRun{run}})
+	turn, err := runtime.Turn(context.Background(), "secret prompt words")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -65,13 +65,13 @@ func readTurn(ctx context.Context, home, workDir string, ref turnRef) ([]message
 	all := append(turn, subagents...)
 	sort.SliceStable(all, func(i, j int) bool { return all[i].timestamp.Before(all[j].timestamp) })
 
-	tr := newTranslator()
+	translator := newTranslator()
 	var out []message.Message
 	for _, l := range all {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("claude: read turn: %w", err)
 		}
-		msgs, err := tr.transcriptEntry(l.raw, l.parent, l.prompt)
+		msgs, err := translator.transcriptEntry(l.raw, l.parent, l.prompt)
 		if err != nil {
 			return nil, err
 		}

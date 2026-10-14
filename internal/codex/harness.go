@@ -47,10 +47,10 @@ type Harness struct {
 	config map[string]any
 
 	mu        sync.Mutex
-	srv       *appServer
+	server    *appServer
 	processes int
 	thread    string // the conversation; empty until the first thread/start
-	loaded    bool   // the thread is started or resumed on srv
+	loaded    bool   // the thread is started or resumed on server
 	closed    bool
 
 	// endedMu guards ended apart from mu, which StartTurn holds while it
@@ -76,16 +76,16 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 	if h.closed {
 		return nil, errClosed
 	}
-	if h.srv != nil && h.srv.dead() {
-		h.srv.close()
-		h.srv = nil
+	if h.server != nil && h.server.dead() {
+		h.server.close()
+		h.server = nil
 	}
-	if h.srv == nil {
-		srv, err := h.startServer(ctx)
+	if h.server == nil {
+		server, err := h.startServer(ctx)
 		if err != nil {
 			return nil, err
 		}
-		h.srv = srv
+		h.server = server
 		h.loaded = false
 	}
 	if !h.loaded {
@@ -100,7 +100,7 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 		"input":    []map[string]any{{"type": "text", "text": prompt, "text_elements": []any{}}},
 		"summary":  reasoningSummary,
 	}
-	result, err := h.srv.request(ctx, "turn/start", params)
+	result, err := h.server.request(ctx, "turn/start", params)
 	if err != nil {
 		var rpcErr *rpcError
 		if !errors.As(err, &rpcErr) {
@@ -123,7 +123,7 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 		h.dropServer()
 		return nil, fmt.Errorf("codex: turn/start returned no turn id: %s", result)
 	}
-	return newRun(h, h.srv, h.thread, resp.Turn.ID), nil
+	return newRun(h, h.server, h.thread, resp.Turn.ID), nil
 }
 
 func (h *Harness) startServer(ctx context.Context) (*appServer, error) {
@@ -133,22 +133,22 @@ func (h *Harness) startServer(ctx context.Context) (*appServer, error) {
 		n, f := h.processes, h.tap
 		tap = func(dir string, line []byte) { f(n, dir, line) }
 	}
-	srv, err := startAppServer(h.cfg.WorkDir, h.cfg.Home, tap)
+	server, err := startAppServer(h.cfg.WorkDir, h.cfg.Home, tap)
 	if err != nil {
 		return nil, err
 	}
 	params := map[string]any{"clientInfo": map[string]any{"name": clientName, "title": clientTitle, "version": clientVersion}}
-	if _, err := srv.request(ctx, "initialize", params); err != nil {
-		srv.kill()
-		srv.close()
+	if _, err := server.request(ctx, "initialize", params); err != nil {
+		server.kill()
+		server.close()
 		return nil, err
 	}
-	if err := srv.notify("initialized"); err != nil {
-		srv.kill()
-		srv.close()
+	if err := server.notify("initialized"); err != nil {
+		server.kill()
+		server.close()
 		return nil, err
 	}
-	return srv, nil
+	return server, nil
 }
 
 // loadThread starts the conversation's thread on the first turn and resumes
@@ -170,7 +170,7 @@ func (h *Harness) loadThread(ctx context.Context) error {
 		method = "thread/resume"
 		params["threadId"] = h.thread
 	}
-	result, err := h.srv.request(ctx, method, params)
+	result, err := h.server.request(ctx, method, params)
 	if err != nil {
 		return err
 	}
@@ -191,12 +191,12 @@ func (h *Harness) loadThread(ctx context.Context) error {
 
 // dropServer kills and reaps the current app-server. h.mu is held.
 func (h *Harness) dropServer() {
-	if h.srv == nil {
+	if h.server == nil {
 		return
 	}
-	h.srv.kill()
-	h.srv.close()
-	h.srv = nil
+	h.server.kill()
+	h.server.close()
+	h.server = nil
 }
 
 // markEnded records that a turn completed while its app-server ran, so that
@@ -238,9 +238,9 @@ func (h *Harness) Close() error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.closed = true
-	if h.srv != nil {
-		h.srv.close()
-		h.srv = nil
+	if h.server != nil {
+		h.server.close()
+		h.server = nil
 	}
 	return nil
 }

@@ -57,7 +57,7 @@ type tokenUsage struct {
 // run is one accepted turn on an app-server.
 type run struct {
 	h      *Harness
-	srv    *appServer
+	server *appServer
 	thread string
 	turn   string
 	ref    harness.Ref
@@ -72,11 +72,11 @@ type run struct {
 
 var _ harness.Run = (*run)(nil)
 
-func newRun(h *Harness, srv *appServer, thread, turn string) *run {
+func newRun(h *Harness, server *appServer, thread, turn string) *run {
 	data, _ := json.Marshal(map[string]string{"thread_id": thread, "turn_id": turn})
 	r := &run{
 		h:           h,
-		srv:         srv,
+		server:      server,
 		thread:      thread,
 		turn:        turn,
 		ref:         harness.Ref{SessionID: thread, Data: data},
@@ -98,14 +98,14 @@ func (r *run) Interrupt() {
 	r.interrupt.Do(func() {
 		close(r.interrupted)
 		go func() {
-			_, _ = r.srv.request(context.Background(), "turn/interrupt", map[string]string{"threadId": r.thread, "turnId": r.turn})
+			_, _ = r.server.request(context.Background(), "turn/interrupt", map[string]string{"threadId": r.thread, "turnId": r.turn})
 		}()
 	})
 }
 
 // Kill kills the app-server. The next StartTurn starts a new one that
 // resumes the thread.
-func (r *run) Kill() { r.srv.kill() }
+func (r *run) Kill() { r.server.kill() }
 
 func (r *run) Wait() (harness.Outcome, error) {
 	<-r.done
@@ -117,21 +117,21 @@ func (r *run) Wait() (harness.Outcome, error) {
 func (r *run) loop() {
 	defer close(r.done)
 	defer close(r.msgs)
-	st := newStream(r.thread, r.turn)
+	stream := newStream(r.thread, r.turn)
 	for {
-		line, ok := r.srv.next()
+		line, ok := r.server.next()
 		if !ok {
-			r.outcome.Usage = st.usage
-			r.err = fmt.Errorf("codex: turn %s did not complete: %w", r.turn, r.srv.err())
+			r.outcome.Usage = stream.usage
+			r.err = fmt.Errorf("codex: turn %s did not complete: %w", r.turn, r.server.err())
 			return
 		}
-		msgs, done := st.handle(line)
+		msgs, done := stream.handle(line)
 		for _, m := range msgs {
 			r.msgs <- m
 		}
 		if done {
-			r.outcome.Usage = st.usage
-			r.err = st.err
+			r.outcome.Usage = stream.usage
+			r.err = stream.err
 			r.h.markEnded(r.turn)
 			r.shutdownIfStopped()
 			return
@@ -148,7 +148,7 @@ func (r *run) loop() {
 func (r *run) shutdownIfStopped() {
 	select {
 	case <-r.interrupted:
-		r.srv.close()
+		r.server.close()
 	default:
 	}
 }
@@ -158,58 +158,58 @@ func (r *run) shutdownIfStopped() {
 // of other threads and turns are ignored.
 type stream struct {
 	thread, turn string
-	tr           *translator
+	translator   *translator
 	usage        harness.Usage
 	err          error // the turn's outcome once handle reported done
 	protoErr     error
 }
 
 func newStream(thread, turn string) *stream {
-	return &stream{thread: thread, turn: turn, tr: newTranslator()}
+	return &stream{thread: thread, turn: turn, translator: newTranslator()}
 }
 
 // handle translates one notification line. done reports that the turn
-// completed; st.err then holds its outcome.
-func (st *stream) handle(line []byte) (msgs []message.Message, done bool) {
+// completed; s.err then holds its outcome.
+func (s *stream) handle(line []byte) (msgs []message.Message, done bool) {
 	var n notification
 	if err := json.Unmarshal(line, &n); err != nil {
 		return nil, false
 	}
-	own := n.Params.ThreadID == st.thread
-	if !own && !st.tr.follows(n.Params.ThreadID) {
+	own := n.Params.ThreadID == s.thread
+	if !own && !s.translator.follows(n.Params.ThreadID) {
 		return nil, false
 	}
 	switch n.Method {
 	case methodItemStarted, methodItemCompleted:
-		if own && n.Params.TurnID != st.turn {
+		if own && n.Params.TurnID != s.turn {
 			return nil, false
 		}
 		var it item
 		if err := json.Unmarshal(n.Params.Item, &it); err != nil {
-			if st.protoErr == nil {
-				st.protoErr = fmt.Errorf("codex: decode %s: %w", n.Method, err)
+			if s.protoErr == nil {
+				s.protoErr = fmt.Errorf("codex: decode %s: %w", n.Method, err)
 			}
 			return nil, false
 		}
 		raw := append(json.RawMessage(nil), line...)
 		if n.Method == methodItemStarted {
-			return st.tr.itemStarted(n.Params.ThreadID, it, n.Params.Item, raw), false
+			return s.translator.itemStarted(n.Params.ThreadID, it, n.Params.Item, raw), false
 		}
-		return st.tr.itemCompleted(n.Params.ThreadID, it, n.Params.Item, raw), false
+		return s.translator.itemCompleted(n.Params.ThreadID, it, n.Params.Item, raw), false
 	case methodTokenUsage:
 		// Usage counts the turn's own thread; Codex reports usage of
 		// cached input as part of the input (design 001).
-		if !own || n.Params.TurnID != st.turn || n.Params.TokenUsage == nil {
+		if !own || n.Params.TurnID != s.turn || n.Params.TokenUsage == nil {
 			return nil, false
 		}
 		u := n.Params.TokenUsage.Last
-		st.usage.InputTokens += u.InputTokens - u.CachedInputTokens
-		st.usage.OutputTokens += u.OutputTokens
-		st.usage.CacheReadTokens += u.CachedInputTokens
-		st.usage.CacheWriteTokens += u.CacheWriteInputTokens
+		s.usage.InputTokens += u.InputTokens - u.CachedInputTokens
+		s.usage.OutputTokens += u.OutputTokens
+		s.usage.CacheReadTokens += u.CachedInputTokens
+		s.usage.CacheWriteTokens += u.CacheWriteInputTokens
 	case methodTurnCompleted:
 		t := n.Params.Turn
-		if !own || t == nil || t.ID != st.turn {
+		if !own || t == nil || t.ID != s.turn {
 			return nil, false
 		}
 		switch t.Status {
@@ -218,11 +218,11 @@ func (st *stream) handle(line []byte) (msgs []message.Message, done bool) {
 			if t.Error != nil {
 				msg = t.Error.Message
 			}
-			st.err = fmt.Errorf("codex: turn %s failed: %s", st.turn, msg)
+			s.err = fmt.Errorf("codex: turn %s failed: %s", s.turn, msg)
 		case turnCompleted, turnInterrupted:
-			st.err = st.protoErr
+			s.err = s.protoErr
 		default:
-			st.err = fmt.Errorf("codex: turn %s ended with status %q", st.turn, t.Status)
+			s.err = fmt.Errorf("codex: turn %s ended with status %q", s.turn, t.Status)
 		}
 		return nil, true
 	}

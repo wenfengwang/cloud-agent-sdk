@@ -33,21 +33,21 @@ func fixtureTurns(t *testing.T, rec testenv.Recorded) []recordedTurn {
 	for _, lines := range rec.Traffic {
 		thread, turns := threadAndTurns(t, lines)
 		for _, turn := range turns {
-			st := newStream(thread, turn)
-			rt := recordedTurn{thread: thread, turn: turn}
+			stream := newStream(thread, turn)
+			recorded := recordedTurn{thread: thread, turn: turn}
 			for _, l := range lines {
 				if l.Dir != fakeharness.DirRecv {
 					continue
 				}
-				msgs, done := st.handle(l.Line)
-				rt.msgs = append(rt.msgs, msgs...)
+				msgs, done := stream.handle(l.Line)
+				recorded.msgs = append(recorded.msgs, msgs...)
 				if done {
-					rt.status = turnStatus(l.Line)
+					recorded.status = turnStatus(l.Line)
 					break
 				}
 			}
-			rt.usage, rt.err = st.usage, st.err
-			out = append(out, rt)
+			recorded.usage, recorded.err = stream.usage, stream.err
+			out = append(out, recorded)
 		}
 	}
 	return out
@@ -134,8 +134,8 @@ func TestTranslate(t *testing.T) {
 			rec := readFixture(t, dir)
 			turns := fixtureTurns(t, rec)
 			var all []message.Message
-			for _, rt := range turns {
-				all = append(all, rt.msgs...)
+			for _, recorded := range turns {
+				all = append(all, recorded.msgs...)
 			}
 			testenv.Golden(t, filepath.Join(dir, "messages.golden.json"), goldenView(all))
 			checkCommon(t, rec, turns)
@@ -155,24 +155,24 @@ func checkCommon(t *testing.T, rec testenv.Recorded, turns []recordedTurn) {
 		t.Fatalf("%d turns for %d prompts", len(turns), len(rec.Meta.Prompts))
 	}
 	ids := map[string]bool{}
-	for i, rt := range turns {
-		if rt.status == "" {
+	for i, recorded := range turns {
+		if recorded.status == "" {
 			t.Fatalf("turn %d never completed", i+1)
 		}
-		if rt.status != turnInterrupted && rt.err != nil {
-			t.Fatalf("turn %d: %v", i+1, rt.err)
+		if recorded.status != turnInterrupted && recorded.err != nil {
+			t.Fatalf("turn %d: %v", i+1, recorded.err)
 		}
-		if len(rt.msgs) == 0 || rt.msgs[0].Kind != message.KindUser || rt.msgs[0].User.Text != rec.Meta.Prompts[i] {
-			t.Fatalf("turn %d does not start with its prompt: %s", i+1, kinds(rt.msgs))
+		if len(recorded.msgs) == 0 || recorded.msgs[0].Kind != message.KindUser || recorded.msgs[0].User.Text != rec.Meta.Prompts[i] {
+			t.Fatalf("turn %d does not start with its prompt: %s", i+1, kinds(recorded.msgs))
 		}
-		if rt.status == turnCompleted && (rt.usage.InputTokens == 0 || rt.usage.OutputTokens == 0) {
-			t.Errorf("turn %d: usage %+v", i+1, rt.usage)
+		if recorded.status == turnCompleted && (recorded.usage.InputTokens == 0 || recorded.usage.OutputTokens == 0) {
+			t.Errorf("turn %d: usage %+v", i+1, recorded.usage)
 		}
-		if want := reportedUsage(t, rec, rt); rt.usage != want {
-			t.Errorf("turn %d: usage %+v, want %+v", i+1, rt.usage, want)
+		if want := reportedUsage(t, rec, recorded); recorded.usage != want {
+			t.Errorf("turn %d: usage %+v, want %+v", i+1, recorded.usage, want)
 		}
 		calls := map[string]message.ToolName{}
-		for _, m := range rt.msgs {
+		for _, m := range recorded.msgs {
 			checkShape(t, m)
 			if ids[m.ID] {
 				t.Errorf("duplicate message ID %s", m.ID)
@@ -237,7 +237,7 @@ func checkShape(t *testing.T, m message.Message) {
 // reportedUsage sums the per-request token counts Codex reported for the
 // turn's own thread, normalized as design 001 states: InputTokens excludes
 // cached input.
-func reportedUsage(t *testing.T, rec testenv.Recorded, rt recordedTurn) harness.Usage {
+func reportedUsage(t *testing.T, rec testenv.Recorded, recorded recordedTurn) harness.Usage {
 	t.Helper()
 	var u harness.Usage
 	for _, lines := range rec.Traffic {
@@ -257,7 +257,7 @@ func reportedUsage(t *testing.T, rec testenv.Recorded, rt recordedTurn) harness.
 			if l.Dir != fakeharness.DirRecv || json.Unmarshal(l.Line, &n) != nil || n.Method != "thread/tokenUsage/updated" {
 				continue
 			}
-			if n.Params.ThreadID != rt.thread || n.Params.TurnID != rt.turn {
+			if n.Params.ThreadID != recorded.thread || n.Params.TurnID != recorded.turn {
 				continue
 			}
 			last := n.Params.TokenUsage.Last
@@ -381,10 +381,10 @@ func requireKinds(t *testing.T, msgs []message.Message, want ...message.Kind) {
 	}
 }
 
-func requireFinalText(t *testing.T, rt recordedTurn, want string) {
+func requireFinalText(t *testing.T, recorded recordedTurn, want string) {
 	t.Helper()
 	final := ""
-	for _, m := range rt.msgs {
+	for _, m := range recorded.msgs {
 		if m.Assistant != nil && m.ParentToolUseID == "" {
 			final = m.Assistant.Text
 		}

@@ -50,7 +50,7 @@ func New(cfg Config) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	ix, err := createIndex(id, agentRecord{Harness: cfg.Harness, Model: cfg.Model, WorkDir: cfg.WorkDir, Home: cfg.Home})
+	index, err := createIndex(id, agentRecord{Harness: cfg.Harness, Model: cfg.Model, WorkDir: cfg.WorkDir, Home: cfg.Home})
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func New(cfg Config) (*Runtime, error) {
 	if grace == 0 {
 		grace = DefaultStopGrace
 	}
-	return &Runtime{id: id, adapter: cfg.Adapter, index: ix, stopGrace: grace, closeDone: make(chan struct{})}, nil
+	return &Runtime{id: id, adapter: cfg.Adapter, index: index, stopGrace: grace, closeDone: make(chan struct{})}, nil
 }
 
 // ID returns the agent ID.

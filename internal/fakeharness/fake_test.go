@@ -152,7 +152,7 @@ func TestClaudeReplay(t *testing.T) {
 	if err := os.WriteFile(fixture, []byte(`{"cwd":"@WORKDIR@","sessionId":"@SESSION_ID@"}`+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	tr := traffic(t,
+	trafficPath := traffic(t,
 		`send {"type":"user","message":{"role":"user","content":"hi"}}`,
 		`recv {"type":"system","subtype":"init","cwd":"@WORKDIR@","session_id":"@SESSION_ID@"}`,
 		`recv {"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}`,
@@ -164,7 +164,7 @@ func TestClaudeReplay(t *testing.T) {
 		Substitutions:    map[string]string{"@WORKDIR@": workDir},
 		ArgSubstitutions: map[string][]string{"@SESSION_ID@": {"--session-id", "--resume"}},
 		Invocations: []Invocation{{
-			Traffic: tr,
+			Traffic: trafficPath,
 			Files:   []File{{From: fixture, To: filepath.Join(home, "projects", "@SESSION_ID@.jsonl")}},
 		}},
 	}, "--print", "--session-id", "sess-123")
@@ -235,7 +235,7 @@ func TestClaudeReplay(t *testing.T) {
 }
 
 func TestCodexReplayRewritesResponseIDs(t *testing.T) {
-	tr := traffic(t,
+	trafficPath := traffic(t,
 		`send {"id":0,"method":"initialize","params":{}}`,
 		`recv {"id":0,"result":{"userAgent":"x"}}`,
 		`send {"method":"initialized"}`,
@@ -244,7 +244,7 @@ func TestCodexReplayRewritesResponseIDs(t *testing.T) {
 		`recv {"method":"thread/started","params":{}}`,
 	)
 	t.Setenv("CODEX_HOME", "/codex-home")
-	p, state := start(t, "codex", Script{Invocations: []Invocation{{Traffic: tr, ExitAtEnd: true}}}, "app-server")
+	p, state := start(t, "codex", Script{Invocations: []Invocation{{Traffic: trafficPath, ExitAtEnd: true}}}, "app-server")
 	p.send(`{"id":41,"method":"initialize","params":{}}`)
 	if got := p.recv(); got != `{"id":41,"result":{"userAgent":"x"}}` {
 		t.Fatalf("initialize response = %s", got)
@@ -264,11 +264,11 @@ func TestCodexReplayRewritesResponseIDs(t *testing.T) {
 }
 
 func TestCodexRejectMethod(t *testing.T) {
-	tr := traffic(t,
+	trafficPath := traffic(t,
 		`send {"id":0,"method":"turn/start","params":{}}`,
 		`recv {"id":0,"result":{}}`,
 	)
-	p, _ := start(t, "codex", Script{Invocations: []Invocation{{Traffic: tr, RejectMethod: "turn/start"}}}, "app-server")
+	p, _ := start(t, "codex", Script{Invocations: []Invocation{{Traffic: trafficPath, RejectMethod: "turn/start"}}}, "app-server")
 	p.send(`{"id":5,"method":"turn/start","params":{}}`)
 	var resp struct {
 		ID    int `json:"id"`
@@ -292,12 +292,12 @@ func TestExitAtStart(t *testing.T) {
 }
 
 func TestCrashAfter(t *testing.T) {
-	tr := traffic(t,
+	trafficPath := traffic(t,
 		`recv {"type":"system"}`,
 		`recv {"type":"assistant"}`,
 		`recv {"type":"result"}`,
 	)
-	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: tr, CrashAfter: &Crash{Lines: 2, ExitCode: 3}}}})
+	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: trafficPath, CrashAfter: &Crash{Lines: 2, ExitCode: 3}}}})
 	p.recv()
 	p.recv()
 	if code := p.wait(); code != 3 {
@@ -306,12 +306,12 @@ func TestCrashAfter(t *testing.T) {
 }
 
 func TestHangHonorsInterrupt(t *testing.T) {
-	tr := traffic(t,
+	trafficPath := traffic(t,
 		`recv {"type":"system"}`,
 		`send {"type":"control_request","request_id":"r","request":{"subtype":"interrupt"}}`,
 		`recv {"type":"result","subtype":"error_during_execution"}`,
 	)
-	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: tr, ExitAtEnd: true, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptHonor}}}})
+	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: trafficPath, ExitAtEnd: true, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptHonor}}}})
 	p.recv()
 	p.noLine(100 * time.Millisecond)
 	p.send(`{"type":"control_request","request_id":"x","request":{"subtype":"interrupt"}}`)
@@ -324,8 +324,8 @@ func TestHangHonorsInterrupt(t *testing.T) {
 }
 
 func TestHangHonorsSignal(t *testing.T) {
-	tr := traffic(t, `recv {"type":"system"}`, `recv {"type":"result"}`)
-	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: tr, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptHonor}}}})
+	trafficPath := traffic(t, `recv {"type":"system"}`, `recv {"type":"result"}`)
+	p, _ := start(t, "claude", Script{Invocations: []Invocation{{Traffic: trafficPath, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptHonor}}}})
 	p.recv()
 	p.cmd.Process.Signal(syscall.SIGTERM)
 	if code := p.wait(); code != 143 {
@@ -334,8 +334,8 @@ func TestHangHonorsSignal(t *testing.T) {
 }
 
 func TestHangIgnoresInterrupt(t *testing.T) {
-	tr := traffic(t, `recv {"method":"turn/started"}`, `send {"id":1,"method":"turn/interrupt"}`)
-	p, _ := start(t, "codex", Script{Invocations: []Invocation{{Traffic: tr, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptIgnore}}}}, "app-server")
+	trafficPath := traffic(t, `recv {"method":"turn/started"}`, `send {"id":1,"method":"turn/interrupt"}`)
+	p, _ := start(t, "codex", Script{Invocations: []Invocation{{Traffic: trafficPath, HangAfter: &Hang{Lines: 1, OnInterrupt: OnInterruptIgnore}}}}, "app-server")
 	p.recv()
 	p.send(`{"id":9,"method":"turn/interrupt"}`)
 	p.cmd.Process.Signal(syscall.SIGTERM)
@@ -349,10 +349,10 @@ func TestHangIgnoresInterrupt(t *testing.T) {
 }
 
 func TestInvocationsAndPace(t *testing.T) {
-	tr := traffic(t, `recv {"type":"a"}`, `recv {"type":"b"}`)
+	trafficPath := traffic(t, `recv {"type":"a"}`, `recv {"type":"b"}`)
 	s := Script{StateDir: t.TempDir(), Invocations: []Invocation{
-		{Traffic: tr, ExitAtEnd: true},
-		{Traffic: tr, ExitAtEnd: true, PaceMs: 100},
+		{Traffic: trafficPath, ExitAtEnd: true},
+		{Traffic: trafficPath, ExitAtEnd: true, PaceMs: 100},
 	}}
 	p, state := start(t, "claude", s)
 	p.recv()

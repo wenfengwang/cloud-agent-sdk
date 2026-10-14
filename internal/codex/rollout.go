@@ -106,7 +106,7 @@ type rolloutEvent struct {
 // item/completed carried, so the live sequence is rebuilt by time. ended
 // reports whether the turn's end event is written.
 func readRolloutOnce(home, thread, turn string) ([]message.Message, bool, error) {
-	r := rolloutReader{home: home, root: turn, read: map[string]bool{}, tr: newTranslator()}
+	r := rolloutReader{home: home, root: turn, read: map[string]bool{}, translator: newTranslator()}
 	ended, err := r.readThread(thread, "")
 	if err != nil {
 		return nil, false, err
@@ -115,9 +115,9 @@ func readRolloutOnce(home, thread, turn string) ([]message.Message, bool, error)
 	var out []message.Message
 	for _, e := range r.events {
 		if e.started {
-			out = append(out, r.tr.itemStarted(e.thread, e.it, e.itemRaw, e.line)...)
+			out = append(out, r.translator.itemStarted(e.thread, e.it, e.itemRaw, e.line)...)
 		} else {
-			out = append(out, r.tr.itemCompleted(e.thread, e.it, e.itemRaw, e.line)...)
+			out = append(out, r.translator.itemCompleted(e.thread, e.it, e.itemRaw, e.line)...)
 		}
 	}
 	return out, ended, nil
@@ -163,7 +163,7 @@ type rolloutReader struct {
 	home, root string
 	read       map[string]bool // threads already read
 	events     []rolloutEvent
-	tr         *translator
+	translator *translator
 }
 
 // readThread collects the events of thread that belong to the root turn,
@@ -189,7 +189,7 @@ func (r *rolloutReader) readThread(thread, spawn string) (bool, error) {
 	if spawn != "" {
 		// Read-back follows the subagent's items before it reaches its
 		// subAgentActivity item.
-		r.tr.spawns[thread] = spawn
+		r.translator.spawns[thread] = spawn
 	}
 	turns := map[string]bool{}
 	if spawn == "" {

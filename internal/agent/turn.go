@@ -20,9 +20,9 @@ type Result struct {
 
 // Turn is one turn of a Runtime.
 type Turn struct {
-	id   string
-	rt   *Runtime
-	done chan struct{} // closed when the turn has ended or its start failed
+	id      string
+	runtime *Runtime
+	done    chan struct{} // closed when the turn has ended or its start failed
 	// cancelStart cancels the harness start; set before the turn becomes
 	// active and safe to call after the start returned.
 	cancelStart context.CancelFunc
@@ -39,8 +39,8 @@ type Turn struct {
 	err       error
 }
 
-func newTurn(rt *Runtime, id string) *Turn {
-	t := &Turn{id: id, rt: rt, done: make(chan struct{})}
+func newTurn(runtime *Runtime, id string) *Turn {
+	t := &Turn{id: id, runtime: runtime, done: make(chan struct{})}
 	t.cond = sync.NewCond(&t.mu)
 	return t
 }
@@ -79,7 +79,7 @@ func (t *Turn) Messages() iter.Seq2[message.Message, error] {
 }
 
 func (t *Turn) readBack(ref harness.Ref, yield func(message.Message, error) bool) {
-	msgs, err := t.rt.adapter.ReadTurn(context.Background(), ref)
+	msgs, err := t.runtime.adapter.ReadTurn(context.Background(), ref)
 	if err != nil {
 		yield(message.Message{}, fmt.Errorf("cloudagent: read turn %s: %w", t.id, err))
 		return
@@ -107,7 +107,7 @@ func (t *Turn) Terminate() error {
 
 // abandon ends a turn whose start failed.
 func (t *Turn) abandon() {
-	t.rt.release(t)
+	t.runtime.release(t)
 	close(t.done)
 }
 
@@ -162,7 +162,7 @@ func (t *Turn) stoppedBy() error {
 func (t *Turn) interrupt(run harness.Run) {
 	run.Interrupt()
 	go func() {
-		timer := time.NewTimer(t.rt.stopGrace)
+		timer := time.NewTimer(t.runtime.stopGrace)
 		defer timer.Stop()
 		select {
 		case <-timer.C:
@@ -194,8 +194,8 @@ func (t *Turn) pump(run harness.Run) {
 	t.mu.Unlock()
 
 	status, err := outcome(cause, runErr)
-	if ixErr := t.rt.index.endTurn(t.id, ref.Data, ref.SessionID, status, time.Now()); ixErr != nil && err == nil {
-		err = ixErr
+	if indexErr := t.runtime.index.endTurn(t.id, ref.Data, ref.SessionID, status, time.Now()); indexErr != nil && err == nil {
+		err = indexErr
 	}
 
 	t.mu.Lock()
@@ -205,7 +205,7 @@ func (t *Turn) pump(run harness.Run) {
 	t.ended = true
 	t.cond.Broadcast()
 	t.mu.Unlock()
-	t.rt.release(t)
+	t.runtime.release(t)
 	close(t.done)
 }
 

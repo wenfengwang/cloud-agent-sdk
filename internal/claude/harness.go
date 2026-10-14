@@ -85,14 +85,14 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 
 // ReadTurn implements harness.Harness.
 func (h *Harness) ReadTurn(ctx context.Context, ref harness.Ref) ([]message.Message, error) {
-	var tr turnRef
-	if err := json.Unmarshal(ref.Data, &tr); err != nil {
+	var turn turnRef
+	if err := json.Unmarshal(ref.Data, &turn); err != nil {
 		return nil, fmt.Errorf("claude: parse turn reference: %w", err)
 	}
-	if tr.SessionID == "" || tr.UserMessageUUID == "" {
+	if turn.SessionID == "" || turn.UserMessageUUID == "" {
 		return nil, fmt.Errorf("claude: incomplete turn reference %s", ref.Data)
 	}
-	return readTurn(ctx, h.home(), h.cfg.WorkDir, tr)
+	return readTurn(ctx, h.home(), h.cfg.WorkDir, turn)
 }
 
 // Close implements harness.Harness. No Claude Code process outlives its

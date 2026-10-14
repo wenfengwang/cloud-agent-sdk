@@ -27,11 +27,12 @@ var adapterPackage = map[cloudagent.Harness]string{
 // markers are substrings of recorded recv lines, per harness, that tests use
 // to script the fake at a point of a replay.
 var markers = map[cloudagent.Harness]struct {
-	accepted  string // the line that makes the turn accepted, or follows it
-	shellCall string // the first line that carries a shell tool call
+	acceptance string // the line that makes the turn accepted
+	accepted   string // the line that makes the turn accepted, or follows it
+	shellCall  string // the first line that carries a shell tool call
 }{
-	cloudagent.Claude: {accepted: `"isReplay":true`, shellCall: `"type":"tool_use"`},
-	cloudagent.OpenAI: {accepted: `"type":"userMessage"`, shellCall: `"type":"commandExecution"`},
+	cloudagent.Claude: {acceptance: `"isReplay":true`, accepted: `"isReplay":true`, shellCall: `"type":"tool_use"`},
+	cloudagent.OpenAI: {acceptance: `"result":{"turn":`, accepted: `"type":"userMessage"`, shellCall: `"type":"commandExecution"`},
 }
 
 // placeholderSessionID is the Claude fixtures' placeholder for the session ID

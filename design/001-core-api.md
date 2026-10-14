@@ -40,7 +40,7 @@ An `AgentRuntime` is a conversation; a `Turn` is one exchange in it. At most one
 ```mermaid
 stateDiagram-v2
     [*] --> starting: agent.Turn
-    starting --> [*]: start error (returned by agent.Turn)
+    starting --> [*]: start error or ctx cancelled (returned by agent.Turn)
     starting --> running: harness accepted the prompt
     running --> completed: harness finished
     running --> terminated: turn.Terminate
@@ -154,7 +154,7 @@ type TurnOptions struct{}
 
 `Turn` returns a start error when the agent is closed (`ErrClosed`), another turn is active (`ErrTurnInProgress`), the prompt is empty, the harness CLI cannot be started, or the harness rejects the prompt. Once it returns a `*Turn`, every later failure is reported by `Turn.Result`.
 
-`ctx` governs the turn's execution, not only the call: cancelling it after `Turn` returns stops the turn.
+`ctx` governs the turn's execution, not only the call: cancelling it after `Turn` returns stops the turn. Cancelling it while `Turn` still waits for the harness to accept the prompt makes `Turn` return `ctx.Err()`, the same error a cancelled running turn reports; no turn is recorded, but the prompt may already have entered the harness conversation.
 
 `Close` stops the active turn, if any, through the graceful stop path and waits for it to end; that turn's `Result` returns `ErrClosed`. It then stops the harness process. `Close` is idempotent. After it returns, `Turn` fails with `ErrClosed`; turns that already ended can still be read.
 
@@ -364,7 +364,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 ## Testing
 
 - **Translation tests.** Recorded harness output (Claude stream-json lines, Codex app-server notifications) is fed through each adapter and compared against golden canonical messages, one fixture per row of the tool and message mapping tables.
-- **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, completion, `Terminate`, context cancellation, `Close` during a turn, a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
+- **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, cancellation before the prompt is accepted, completion, `Terminate`, context cancellation, `Close` during a turn, a stop the harness ignores (it is force-killed together with a child it started in its own process group), process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
 - **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`: every scenario, continuity, `Terminate` during a running command (no process survives the stop, and the next turn continues the conversation), `Close`, and a read-back of every turn that must match the live messages, IDs included. They fail, rather than skip, when an installed CLI's version differs from its pin.

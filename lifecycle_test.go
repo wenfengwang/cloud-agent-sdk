@@ -103,6 +103,39 @@ func TestStartError(t *testing.T) {
 	}
 }
 
+// TestStartCancelled: when ctx is cancelled while the harness has not yet
+// accepted the prompt, Turn returns ctx.Err(), records no turn, and leaves
+// no harness process of the start behind.
+func TestStartCancelled(t *testing.T) {
+	for _, h := range harnesses {
+		t.Run(string(h), func(t *testing.T) {
+			e := newReplay(t, h, "text", func(e *replayEnv, invs []fakeharness.Invocation) []fakeharness.Invocation {
+				// Stall right before the line that accepts the prompt.
+				invs[0].HangAfter = &fakeharness.Hang{Lines: e.recvLinesThrough(t, 1, markers[h].acceptance) - 1, OnInterrupt: fakeharness.OnInterruptHonor}
+				return invs
+			})
+			a := e.newAgent(t)
+			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+			defer cancel()
+			turn, err := a.Turn(ctx, e.rec.Meta.Prompts[0], cloudagent.TurnOptions{})
+			if turn != nil || err == nil || err != ctx.Err() {
+				t.Fatalf("Turn = %v, %v; want nil, %v", turn, err, ctx.Err())
+			}
+			if recs := e.turnRecords(t, a); len(recs) != 0 {
+				t.Errorf("a cancelled start was recorded: %+v", recs)
+			}
+			if pids := e.state.LivePIDs(t); len(pids) != 0 {
+				t.Errorf("harness processes alive after the cancelled start: %v", pids)
+			}
+			// The agent is free for the next turn (which the script does
+			// not let the fake accept).
+			if _, err := a.Turn(context.Background(), "next", cloudagent.TurnOptions{}); errors.Is(err, cloudagent.ErrTurnInProgress) {
+				t.Errorf("Turn after a cancelled start: %v", err)
+			}
+		})
+	}
+}
+
 // TestStop replays the terminate scenario and stops the turn once its shell
 // call appears, through each of the three stop causes of design 001.
 func TestStop(t *testing.T) {

@@ -92,6 +92,11 @@ func (r *Runtime) Turn(ctx context.Context, prompt string) (*Turn, error) {
 	run, err := r.adapter.StartTurn(ctx, prompt)
 	if err != nil {
 		t.abandon()
+		// A start cut short by ctx reports ctx.Err(), as a running turn
+		// would; the prompt may already be in the conversation.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		return nil, fmt.Errorf("cloudagent: start turn: %w", err)
 	}
 	ref := run.Ref()

@@ -105,7 +105,9 @@ func (a *AgentRuntime) ID() string { return a.rt.ID() }
 // returns a *Turn, every later failure is reported by Turn.Result.
 //
 // ctx governs the turn's execution, not only the call: cancelling it after
-// Turn returns stops the turn.
+// Turn returns stops the turn. Cancelling it while Turn still waits for the
+// harness to accept the prompt makes Turn return ctx.Err(); the prompt may
+// already have entered the harness conversation.
 func (a *AgentRuntime) Turn(ctx context.Context, prompt string, opts TurnOptions) (*Turn, error) {
 	t, err := a.rt.Turn(ctx, prompt)
 	if err != nil {

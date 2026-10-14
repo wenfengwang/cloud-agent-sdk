@@ -50,7 +50,7 @@ Code layout:
 |---|---|
 | `scripts/install-harnesses.sh` | Installs the pinned CLIs into `.tools/` |
 | `internal/testenv` | Test support shared by all layers: repository root, pinned versions, `.tools` lookup, credential loading, scenario definitions, fixture reading and writing, scrubbing |
-| `internal/fakeharness` | The fake harness executable (`package main`) |
+| `internal/fakeharness` | The fake harness: script format and test helpers (build, install on `PATH`, read its recorded state); the executable itself is `internal/fakeharness/cmd/fakeharness` |
 | `internal/claude/testdata/<scenario>/`, `internal/codex/testdata/<scenario>/` | Recorded fixtures and goldens |
 | `internal/claude/*_test.go`, `internal/codex/*_test.go` | Recording, translation, and read-back tests |
 | `*_test.go` at the module root | Lifecycle, replay, index, and real CLI tests through the public API |
@@ -85,7 +85,7 @@ Each scenario then checks its structural expectations from [Scenarios](#scenario
 
 ### 2. Lifecycle tests
 
-Live at the module root and use only the exported API. `TestMain` builds `internal/fakeharness` once into a temporary directory as both `claude` and `codex`, and every lifecycle test puts that directory first on `PATH`.
+Live at the module root and use only the exported API. `TestMain` builds the fake once into a temporary directory as both `claude` and `codex`, and every lifecycle test makes that directory its whole `PATH`, so no real CLI can be reached.
 
 | Transition or rule | How it is driven | Expected |
 |---|---|---|

@@ -111,8 +111,9 @@ type Run interface {
 	// interrupt control request; Codex: turn/interrupt). It does not block.
 	Interrupt()
 
-	// Kill ends the turn immediately by killing the harness process (and
-	// its process group). The agent calls it when a run has not ended within
+	// Kill ends the turn immediately by killing the harness process, its
+	// process group, and the process groups of its descendants
+	// (proc.KillTree), so that no tool process survives. The agent calls it when a run has not ended within
 	// its grace period after Interrupt, and when the index cannot be
 	// written after acceptance. After Kill, Messages is closed promptly. A
 	// later StartTurn must start a fresh process that continues the

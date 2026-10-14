@@ -14,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/wenfengwang/cloud-agent-sdk/internal/proc"
 )
 
 // closeGrace is how long a shutdown waits for the app-server to exit after
@@ -298,17 +300,20 @@ func (s *appServer) dead() bool {
 	return killed || s.err() != nil
 }
 
-// kill kills the process group at once. It does not wait.
+// kill kills the process group at once, together with the process groups
+// of every descendant (the commands Codex runs in their own groups). It
+// does not wait.
 func (s *appServer) kill() {
 	s.mu.Lock()
 	s.killed = true
 	s.mu.Unlock()
-	_ = syscall.Kill(-s.cmd.Process.Pid, syscall.SIGKILL)
+	proc.KillTree(s.cmd.Process.Pid)
 }
 
 // close ends the process: it closes stdin, waits up to closeGrace for the
-// process to exit, kills the process group in any case so that no process it
-// started survives, and waits until the process is reaped. It is safe to
+// process to exit, kills it with its descendants if it has not, kills the
+// process group in any case so that no process it started survives, and
+// waits until the process is reaped. It is safe to
 // call more than once and concurrently; every call returns once the process
 // is reaped.
 func (s *appServer) close() {
@@ -316,9 +321,10 @@ func (s *appServer) close() {
 		_ = s.stdin.Close()
 		select {
 		case <-s.done:
+			_ = syscall.Kill(-s.cmd.Process.Pid, syscall.SIGKILL)
 		case <-time.After(closeGrace):
+			s.kill()
 		}
-		_ = syscall.Kill(-s.cmd.Process.Pid, syscall.SIGKILL)
 		<-s.done
 	})
 	<-s.done

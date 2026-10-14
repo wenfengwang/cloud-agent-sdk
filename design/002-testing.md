@@ -96,7 +96,7 @@ Live at the module root and use only the exported API. `TestMain` builds the fak
 | Context cancellation | Replay `terminate`, cancel `ctx` | `Result` returns `ctx.Err()`; status `cancelled` |
 | `Close` during a turn | Replay `terminate`, call `Close` | `Result` returns `ErrClosed`; status `closed`; no fake process alive |
 | Process crash | Script exits non-zero after the first lines | `Result` returns a wrapped harness error; status `failed` |
-| Interrupt ignored | Script hangs and ignores the graceful stop | The turn ends as stopped once the grace period of design 001 has passed, and the process is gone |
+| Interrupt ignored | Script hangs, ignores the graceful stop, and spawns a child in its own process group | The turn ends as stopped once the grace period of design 001 has passed; the fake and its child are gone |
 | Single active turn | Script hangs; call `Turn` again | Second call returns `ErrTurnInProgress` |
 | After `Close` | Call `Turn` | Returns `ErrClosed`; ended turns remain readable |
 | Continuity | Replay `two-turn` | Claude's second process is started with `--resume <session-id>`; Codex reuses its thread |

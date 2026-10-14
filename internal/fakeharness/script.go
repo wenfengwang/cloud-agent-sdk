@@ -113,6 +113,10 @@ const (
 type Hang struct {
 	Lines       int    `json:"lines"`
 	OnInterrupt string `json:"onInterrupt"`
+	// SpawnChild starts a long-running child process in its own process
+	// group when the hang begins, as a harness's tool command would; its
+	// process ID is recorded (see State.Children).
+	SpawnChild bool `json:"spawnChild,omitempty"`
 }
 
 // Info is what the fake records about its own process.

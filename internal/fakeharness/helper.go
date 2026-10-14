@@ -14,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
 
 const cmdPackage = "github.com/wenfengwang/cloud-agent-sdk/internal/fakeharness/cmd/fakeharness"
@@ -109,6 +110,7 @@ func ReadTraffic(path string) ([]TrafficLine, error) {
 //	pids               one process ID per line, in start order
 //	info-<n>.json      Info of invocation n
 //	received-<n>.jsonl every line invocation n read from stdin
+//	children           one process ID per line of each spawned child
 type State struct {
 	Dir string
 }
@@ -122,18 +124,30 @@ func (s State) Invocations(t testing.TB) int {
 // PIDs returns the process IDs of every invocation, in start order.
 func (s State) PIDs(t testing.TB) []int {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(s.Dir, "pids"))
+	return s.readPIDs(t, "pids")
+}
+
+// Children returns the process IDs of the children spawned by Hang
+// SpawnChild, in start order.
+func (s State) Children(t testing.TB) []int {
+	t.Helper()
+	return s.readPIDs(t, "children")
+}
+
+func (s State) readPIDs(t testing.TB, name string) []int {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(s.Dir, name))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
-		t.Fatalf("fakeharness: read pids: %v", err)
+		t.Fatalf("fakeharness: read %s: %v", name, err)
 	}
 	var out []int
 	for _, f := range strings.Fields(string(data)) {
 		pid, err := strconv.Atoi(f)
 		if err != nil {
-			t.Fatalf("fakeharness: parse pids: %v", err)
+			t.Fatalf("fakeharness: parse %s: %v", name, err)
 		}
 		out = append(out, pid)
 	}
@@ -145,8 +159,27 @@ func (s State) PIDs(t testing.TB) []int {
 // alive.
 func (s State) LivePIDs(t testing.TB) []int {
 	t.Helper()
+	return livePIDs(s.PIDs(t))
+}
+
+// LiveChildren returns the spawned children that still exist. A killed
+// child is reaped by init, not by the SDK, so the check waits up to two
+// seconds for the reaping before it reports a child as alive.
+func (s State) LiveChildren(t testing.TB) []int {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		live := livePIDs(s.Children(t))
+		if len(live) == 0 || time.Now().After(deadline) {
+			return live
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func livePIDs(pids []int) []int {
 	var out []int
-	for _, pid := range s.PIDs(t) {
+	for _, pid := range pids {
 		if err := syscall.Kill(pid, 0); err == nil || errors.Is(err, syscall.EPERM) {
 			out = append(out, pid)
 		}

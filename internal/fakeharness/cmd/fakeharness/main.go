@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
@@ -68,6 +69,7 @@ func run() int {
 	defer received.Close()
 
 	r := &replayer{
+		stateDir: s.StateDir,
 		protocol: protocol,
 		inv:      inv,
 		subst:    substitutions(s),
@@ -165,6 +167,7 @@ func readStdin(ch chan<- []byte, received *os.File) {
 }
 
 type replayer struct {
+	stateDir string
 	protocol string
 	inv      fakeharness.Invocation
 	subst    map[string]string
@@ -228,6 +231,11 @@ func (r *replayer) afterRecv() error {
 		return exitError(c.ExitCode)
 	}
 	if h := r.inv.HangAfter; h != nil && r.recvs == h.Lines {
+		if h.SpawnChild {
+			if err := r.spawnChild(); err != nil {
+				return err
+			}
+		}
 		return r.hang(h.OnInterrupt)
 	}
 	return nil
@@ -321,6 +329,23 @@ func (r *replayer) answerReject(line []byte) bool {
 	})
 	r.write(resp)
 	return true
+}
+
+// spawnChild starts a long-running child in its own process group, out of
+// reach of a kill of the fake's process group, and records its pid.
+func (r *replayer) spawnChild() error {
+	cmd := exec.Command("/bin/sleep", "300")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("spawn child: %w", err)
+	}
+	f, err := os.OpenFile(filepath.Join(r.stateDir, "children"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return fmt.Errorf("record child: %w", err)
+	}
+	defer f.Close()
+	_, err = fmt.Fprintln(f, cmd.Process.Pid)
+	return err
 }
 
 // hang stops the replay until an interrupt request (honor) or forever

@@ -17,6 +17,7 @@ import (
 
 	"github.com/wenfengwang/cloud-agent-sdk/internal/harness"
 	"github.com/wenfengwang/cloud-agent-sdk/internal/message"
+	"github.com/wenfengwang/cloud-agent-sdk/internal/proc"
 )
 
 // pipeGrace bounds how long a run waits for its stdout and stderr to close
@@ -268,12 +269,13 @@ func (r *run) Interrupt() {
 	})
 }
 
-// Kill implements harness.Run: it kills the process group and stops reading.
+// Kill implements harness.Run: it kills the process group, and the groups
+// of every descendant, and stops reading.
 func (r *run) Kill() {
 	if isClosed(r.exited) {
 		return
 	}
-	syscall.Kill(-r.cmd.Process.Pid, syscall.SIGKILL)
+	proc.KillTree(r.cmd.Process.Pid)
 	r.stdout.Close()
 	r.closeStdin()
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -180,11 +181,12 @@ func TestStop(t *testing.T) {
 
 // TestStopIgnored: a harness that ignores the graceful stop is killed once
 // the grace period of design 001 has passed, and the turn ends as stopped.
+// The tool process it started in its own process group is killed with it.
 func TestStopIgnored(t *testing.T) {
 	for _, h := range harnesses {
 		t.Run(string(h), func(t *testing.T) {
 			e := newReplay(t, h, "terminate", func(e *replayEnv, invs []fakeharness.Invocation) []fakeharness.Invocation {
-				invs[0].HangAfter = &fakeharness.Hang{Lines: e.recvLinesThrough(t, 1, markers[h].shellCall), OnInterrupt: fakeharness.OnInterruptIgnore}
+				invs[0].HangAfter = &fakeharness.Hang{Lines: e.recvLinesThrough(t, 1, markers[h].shellCall), OnInterrupt: fakeharness.OnInterruptIgnore, SpawnChild: true}
 				return invs
 			})
 			a := e.newAgent(t)
@@ -192,6 +194,11 @@ func TestStopIgnored(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Turn: %v", err)
 			}
+			t.Cleanup(func() {
+				for _, pid := range e.state.Children(t) {
+					syscall.Kill(pid, syscall.SIGKILL)
+				}
+			})
 			var stoppedAt time.Time
 			collect(t, turn, func(m cloudagent.Message) {
 				if stoppedAt.IsZero() && isShellCall(m) {
@@ -207,6 +214,12 @@ func TestStopIgnored(t *testing.T) {
 			}
 			if pids := e.state.LivePIDs(t); len(pids) != 0 {
 				t.Errorf("harness processes alive after the kill: %v", pids)
+			}
+			if len(e.state.Children(t)) != 1 {
+				t.Fatal("the fake spawned no tool process")
+			}
+			if pids := e.state.LiveChildren(t); len(pids) != 0 {
+				t.Errorf("tool processes alive after the kill: %v", pids)
 			}
 			e.requireStatus(t, a, turn, "terminated")
 		})

@@ -28,3 +28,21 @@ func TestLocalCredentials(t *testing.T) {
 		t.Fatal("CodexEnv loaded no credential")
 	}
 }
+
+func TestSetCodexDeveloperInstructions(t *testing.T) {
+	home := t.TempDir()
+	path := filepath.Join(home, "config.toml")
+	writeFile(t, path, "model = \"m\"\n\n[features]\nflag = true\n")
+
+	SetCodexDeveloperInstructions(t, home, `Use "apply_patch".`)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A top-level key must precede every table to stay top-level.
+	want := "developer_instructions = \"Use \\\"apply_patch\\\".\"\nmodel = \"m\"\n\n[features]\nflag = true\n"
+	if string(data) != want {
+		t.Fatalf("config.toml =\n%s\nwant\n%s", data, want)
+	}
+}

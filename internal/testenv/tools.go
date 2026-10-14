@@ -1,6 +1,7 @@
 package testenv
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,16 +26,25 @@ func RequirePinnedCLIs(t *testing.T) {
 		t.Fatal(err)
 	}
 	bin := ToolsBin(t)
-	for name, want := range map[string]string{"claude": v.Claude, "codex": v.Codex} {
-		out, err := exec.Command(filepath.Join(bin, name), "--version").CombinedOutput()
-		if err != nil {
-			t.Fatalf("%s --version: %v (run scripts/install-harnesses.sh)", name, err)
-		}
-		if !matchVersionOutput(string(out), want) {
-			t.Fatalf("%s --version = %q, want pinned version %s (run scripts/install-harnesses.sh)", name, strings.TrimSpace(string(out)), want)
-		}
+	if err := CheckPinnedCLIs(bin, v); err != nil {
+		t.Fatalf("%v (run scripts/install-harnesses.sh)", err)
 	}
 	t.Setenv("PATH", bin+string(filepath.ListSeparator)+os.Getenv("PATH"))
+}
+
+// CheckPinnedCLIs returns an error unless bin holds claude and codex
+// executables whose --version output reports exactly the pinned versions.
+func CheckPinnedCLIs(bin string, pins Versions) error {
+	for _, cli := range []struct{ name, want string }{{"claude", pins.Claude}, {"codex", pins.Codex}} {
+		out, err := exec.Command(filepath.Join(bin, cli.name), "--version").CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("%s --version: %w", cli.name, err)
+		}
+		if !matchVersionOutput(string(out), cli.want) {
+			return fmt.Errorf("%s --version = %q, want pinned version %s", cli.name, strings.TrimSpace(string(out)), cli.want)
+		}
+	}
+	return nil
 }
 
 // matchVersionOutput reports whether want appears as a whole

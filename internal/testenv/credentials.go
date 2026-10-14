@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -75,6 +76,30 @@ func CodexEnv(t *testing.T) HarnessEnv {
 		t.Fatalf("testenv: codex login: %v\n%s", err, s.Scrub(out))
 	}
 	return HarnessEnv{Home: home, Secrets: secrets}
+}
+
+// CodexApplyPatchInstructions are the developer instructions of design
+// 002's Codex test-only override. The pinned Codex offers the apply_patch
+// tool, but the model writes and edits files with shell commands unless told
+// otherwise; with these instructions writes and edits arrive as fileChange
+// items.
+const CodexApplyPatchInstructions = "Create and edit files with the apply_patch tool, not with shell commands."
+
+// SetCodexDeveloperInstructions sets developer_instructions in the
+// config.toml of the Codex home, the way real CLI tests apply the override
+// through the public API, which has no configuration seam.
+func SetCodexDeveloperInstructions(t testing.TB, home, text string) {
+	t.Helper()
+	path := filepath.Join(home, "config.toml")
+	config, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("testenv: read config.toml: %v", err)
+	}
+	// A key before the first table header is a top-level key.
+	line := "developer_instructions = " + strconv.Quote(text) + "\n"
+	if err := os.WriteFile(path, append([]byte(line), config...), 0o600); err != nil {
+		t.Fatalf("testenv: write config.toml: %v", err)
+	}
 }
 
 type envVar struct{ Key, Value string }

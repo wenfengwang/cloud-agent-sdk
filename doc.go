@@ -7,7 +7,7 @@
 // gracefully. Harnesses run without permission prompts, and conversation data
 // lives only in the harness home.
 //
-//	agent, err := cloudagent.New(cloudagent.Claude, cloudagent.Options{WorkDir: "."})
+//	agent, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "."})
 //	if err != nil {
 //		return err
 //	}

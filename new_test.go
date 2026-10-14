@@ -25,9 +25,9 @@ func TestNewValidatesOptions(t *testing.T) {
 	}{
 		{"unknown harness", "gemini", cloudagent.Options{WorkDir: t.TempDir()}},
 		{"empty harness", "", cloudagent.Options{WorkDir: t.TempDir()}},
-		{"empty workdir", cloudagent.Claude, cloudagent.Options{}},
-		{"missing workdir", cloudagent.Claude, cloudagent.Options{WorkDir: filepath.Join(t.TempDir(), "missing")}},
-		{"workdir is a file", cloudagent.OpenAI, cloudagent.Options{WorkDir: file}},
+		{"empty workdir", cloudagent.ClaudeCode, cloudagent.Options{}},
+		{"missing workdir", cloudagent.ClaudeCode, cloudagent.Options{WorkDir: filepath.Join(t.TempDir(), "missing")}},
+		{"workdir is a file", cloudagent.Codex, cloudagent.Options{WorkDir: file}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestNewValidatesOptions(t *testing.T) {
 }
 
 func TestNewWritesIndex(t *testing.T) {
-	for _, h := range []cloudagent.Harness{cloudagent.Claude, cloudagent.OpenAI} {
+	for _, h := range []cloudagent.Harness{cloudagent.ClaudeCode, cloudagent.Codex} {
 		t.Run(string(h), func(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
@@ -84,7 +84,7 @@ func TestNewMakesPathsAbsolute(t *testing.T) {
 	}
 	t.Chdir(parent)
 
-	a, err := cloudagent.New(cloudagent.Claude, cloudagent.Options{WorkDir: "work", Home: "harness-home"})
+	a, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "work", Home: "harness-home"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestNewMakesPathsAbsolute(t *testing.T) {
 
 func TestCloseAndTurnErrors(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	a, err := cloudagent.New(cloudagent.Claude, cloudagent.Options{WorkDir: t.TempDir(), Home: t.TempDir()})
+	a, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: t.TempDir(), Home: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}

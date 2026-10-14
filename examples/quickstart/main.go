@@ -1,8 +1,8 @@
 // Command quickstart runs one turn on Claude Code or Codex through the
 // cloudagent API and prints every message as it arrives.
 //
-//	go run ./examples/quickstart -harness claude "List the files in this directory"
-//	go run ./examples/quickstart -harness openai -workdir /path/to/repo "Explain main.go"
+//	go run ./examples/quickstart -harness claudecode "List the files in this directory"
+//	go run ./examples/quickstart -harness codex -workdir /path/to/repo "Explain main.go"
 //
 // The harness CLI (claude or codex) must be on PATH and already logged in.
 // Press Ctrl-C to stop the turn.
@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	harness := flag.String("harness", "claude", `harness to drive: "claude" or "openai"`)
+	harness := flag.String("harness", "claudecode", `harness to drive: "claudecode" or "codex"`)
 	workDir := flag.String("workdir", ".", "working directory of the agent")
 	model := flag.String("model", "", "model to use; empty selects the harness default")
 	flag.Usage = func() {

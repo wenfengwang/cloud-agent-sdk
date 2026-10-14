@@ -16,12 +16,12 @@ import (
 )
 
 // harnesses are the harnesses every lifecycle test runs against.
-var harnesses = []cloudagent.Harness{cloudagent.Claude, cloudagent.OpenAI}
+var harnesses = []cloudagent.Harness{cloudagent.ClaudeCode, cloudagent.Codex}
 
 // adapterPackage names the adapter package that holds a harness's fixtures.
 var adapterPackage = map[cloudagent.Harness]string{
-	cloudagent.Claude: "claude",
-	cloudagent.OpenAI: "codex",
+	cloudagent.ClaudeCode: "claude",
+	cloudagent.Codex:      "codex",
 }
 
 // markers are substrings of recorded recv lines, per harness, that tests use
@@ -31,8 +31,8 @@ var markers = map[cloudagent.Harness]struct {
 	accepted   string // the line that makes the turn accepted, or follows it
 	shellCall  string // the first line that carries a shell tool call
 }{
-	cloudagent.Claude: {acceptance: `"isReplay":true`, accepted: `"isReplay":true`, shellCall: `"type":"tool_use"`},
-	cloudagent.OpenAI: {acceptance: `"result":{"turn":`, accepted: `"type":"userMessage"`, shellCall: `"type":"commandExecution"`},
+	cloudagent.ClaudeCode: {acceptance: `"isReplay":true`, accepted: `"isReplay":true`, shellCall: `"type":"tool_use"`},
+	cloudagent.Codex:      {acceptance: `"result":{"turn":`, accepted: `"type":"userMessage"`, shellCall: `"type":"commandExecution"`},
 }
 
 // placeholderSessionID is the Claude fixtures' placeholder for the session ID
@@ -79,7 +79,7 @@ func newReplay(t *testing.T, h cloudagent.Harness, scenario string, edit func(*r
 	}
 	script := fakeharness.Script{Substitutions: values}
 	switch h {
-	case cloudagent.Claude:
+	case cloudagent.ClaudeCode:
 		values[testenv.PlaceholderWorkDirEncoded] = claude.EncodeWorkDir(resolved(t, e.work))
 		script.ArgSubstitutions = map[string][]string{placeholderSessionID: {"--session-id", "--resume"}}
 		var files []fakeharness.File
@@ -90,7 +90,7 @@ func newReplay(t *testing.T, h cloudagent.Harness, scenario string, edit func(*r
 			})
 		}
 		invs[len(invs)-1].Files = files
-	case cloudagent.OpenAI:
+	case cloudagent.Codex:
 		testenv.CopyHome(t, e.dir, e.harnessHome, values)
 	}
 	if edit != nil {

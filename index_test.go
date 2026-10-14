@@ -123,8 +123,8 @@ func requireIndexFields(t *testing.T, e *replayEnv, run scenarioRun) {
 		t.Fatalf("turns.jsonl has %d lines, want %d", len(lines), len(run.turns))
 	}
 	refKeys := map[cloudagent.Harness][]string{
-		cloudagent.Claude: {"session_id", "user_message_uuid"},
-		cloudagent.OpenAI: {"thread_id", "turn_id"},
+		cloudagent.ClaudeCode: {"session_id", "user_message_uuid"},
+		cloudagent.Codex:      {"thread_id", "turn_id"},
 	}[e.harness]
 	for i, line := range lines {
 		var rec map[string]any

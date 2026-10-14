@@ -17,7 +17,7 @@ type e2eCheck func(t *testing.T, e *replayEnv, turns [][]cloudagent.Message)
 
 // e2eExpectations are the per-harness structural expectations of design 002.
 var e2eExpectations = map[cloudagent.Harness]map[string]e2eCheck{
-	cloudagent.Claude: {
+	cloudagent.ClaudeCode: {
 		"text":  expectText,
 		"shell": expectShell,
 		"read-file": func(t *testing.T, e *replayEnv, turns [][]cloudagent.Message) {
@@ -42,7 +42,7 @@ var e2eExpectations = map[cloudagent.Harness]map[string]e2eCheck{
 		"terminate": expectTerminate,
 		"two-turn":  expectTwoTurn,
 	},
-	cloudagent.OpenAI: {
+	cloudagent.Codex: {
 		"text":  expectText,
 		"shell": expectShell,
 		"read-file": func(t *testing.T, e *replayEnv, turns [][]cloudagent.Message) {

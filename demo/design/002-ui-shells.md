@@ -54,7 +54,7 @@ flowchart TB
 | Shared vs per shell | Shared: state, the events client, `useComposer`, `ProjectPicker`, `BranchMenu`, renderers, `ReviewPanel`. Shells own only markup, layout, labels, and tokens |
 | Visual differences | Expressed as tokens (for example `--tool-card-border`, `--tool-card-hover-bg`), never as props |
 | Structural variants | A shared component that differs in structure by shell takes a `variant` prop (`"claude"` or `"codex"`) or a named option; there are no shell-specific forks. Codex's "Worked for" grouping is the Transcript option `groupWork`, computed by a pure function next to `model.ts` |
-| Session list per shell | Filtered by harness: `claude` in `/claude`, `openai` in `/codex` |
+| Session list per shell | Filtered by harness: `claudecode` in `/claude`, `codex` in `/codex` |
 | New session | Created from the empty state by the first message; no dialog |
 | Keyboard | In the composer, Enter sends and Shift+Enter inserts a newline; there are no other shortcuts |
 | Shell switching | The Claude account menu opens `/codex`; the Codex workspace-title menu opens `/claude`. Claude's mode segment control does not switch shells |

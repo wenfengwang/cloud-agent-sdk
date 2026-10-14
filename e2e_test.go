@@ -42,9 +42,9 @@ func newE2E(t *testing.T, h cloudagent.Harness, s testenv.Scenario) *replayEnv {
 	e := &replayEnv{harness: h, home: testenv.Isolate(t)}
 	testenv.RequirePinnedCLIs(t)
 	switch h {
-	case cloudagent.Claude:
+	case cloudagent.ClaudeCode:
 		e.harnessHome = testenv.ClaudeEnv(t).Home
-	case cloudagent.OpenAI:
+	case cloudagent.Codex:
 		e.harnessHome = testenv.CodexEnv(t).Home
 		testenv.SetCodexDeveloperInstructions(t, e.harnessHome, testenv.CodexApplyPatchInstructions)
 	}

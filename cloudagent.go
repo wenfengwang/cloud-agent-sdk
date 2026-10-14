@@ -18,8 +18,8 @@ type Harness string
 
 // The supported harnesses.
 const (
-	Claude Harness = "claude" // Claude Code
-	OpenAI Harness = "openai" // Codex
+	ClaudeCode Harness = "claudecode" // Claude Code
+	Codex      Harness = "codex"      // Codex
 )
 
 // Options configures an AgentRuntime. An empty Home leaves CLAUDE_CONFIG_DIR
@@ -82,9 +82,9 @@ func New(h Harness, opts Options) (*AgentRuntime, error) {
 	cfg := harness.Config{Model: opts.Model, WorkDir: workDir, Home: home}
 	var adapter harness.Harness
 	switch h {
-	case Claude:
+	case ClaudeCode:
 		adapter = claude.New(cfg)
-	case OpenAI:
+	case Codex:
 		adapter = codex.New(cfg)
 	default:
 		return nil, fmt.Errorf("cloudagent: unknown harness %q", h)

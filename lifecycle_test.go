@@ -15,7 +15,7 @@ import (
 )
 
 func TestTurnFailsWhenCLIIsMissing(t *testing.T) {
-	for _, h := range []cloudagent.Harness{cloudagent.Claude, cloudagent.OpenAI} {
+	for _, h := range []cloudagent.Harness{cloudagent.ClaudeCode, cloudagent.Codex} {
 		t.Run(string(h), func(t *testing.T) {
 			t.Setenv("HOME", t.TempDir())
 			state := fakeharness.Use(t, t.TempDir(), fakeharness.Script{})
@@ -71,7 +71,7 @@ func TestStartError(t *testing.T) {
 	for _, h := range harnesses {
 		t.Run(string(h), func(t *testing.T) {
 			e := newReplay(t, h, "text", func(e *replayEnv, invs []fakeharness.Invocation) []fakeharness.Invocation {
-				if h == cloudagent.Claude {
+				if h == cloudagent.ClaudeCode {
 					// Claude Code exits before echoing the prompt.
 					reject := fakeharness.Invocation{ExitAtStart: &fakeharness.Exit{Code: 1, Stderr: "rejected by script"}}
 					return append([]fakeharness.Invocation{reject}, invs...)
@@ -455,7 +455,7 @@ func TestContinuity(t *testing.T) {
 				t.Fatal("agent.json has no harness_session_id")
 			}
 			switch h {
-			case cloudagent.Claude:
+			case cloudagent.ClaudeCode:
 				if n := e.state.Invocations(t); n != 2 {
 					t.Fatalf("%d claude processes, want one per turn", n)
 				}
@@ -468,7 +468,7 @@ func TestContinuity(t *testing.T) {
 				for _, args := range [][]string{first, second} {
 					requireFlag(t, args, "--permission-mode", "bypassPermissions")
 				}
-			case cloudagent.OpenAI:
+			case cloudagent.Codex:
 				if n := e.state.Invocations(t); n != 1 {
 					t.Fatalf("%d app-server processes, want 1", n)
 				}

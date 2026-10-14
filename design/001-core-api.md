@@ -57,7 +57,7 @@ stateDiagram-v2
 ```go
 import cloudagent "github.com/wenfengwang/cloud-agent-sdk"
 
-agent, err := cloudagent.New(cloudagent.Claude, cloudagent.Options{WorkDir: "."})
+agent, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "."})
 if err != nil {
 	return err
 }
@@ -99,7 +99,7 @@ Code layout:
 | Decision | Choice |
 |---|---|
 | Public surface | One package, `cloudagent`, at the module root; all implementation under `internal/` |
-| Harnesses | `cloudagent.Claude` drives Claude Code; `cloudagent.OpenAI` drives Codex |
+| Harnesses | `cloudagent.ClaudeCode` drives Claude Code; `cloudagent.Codex` drives Codex |
 | Construction | `New` validates options, assigns an agent ID, and writes the index entry; it starts no process and creates no session |
 | Process model | Hidden from callers. Claude Code runs one process per turn; Codex runs one `codex app-server` process per `AgentRuntime`, started by the first turn |
 | Shutdown | `Close` cancels a turn that is still starting, stops a running turn through the graceful stop path, waits for it to end, and stops the harness process; later calls fail with `ErrClosed` |
@@ -125,8 +125,8 @@ Code layout:
 type Harness string
 
 const (
-	Claude Harness = "claude"
-	OpenAI Harness = "openai"
+	ClaudeCode Harness = "claudecode"
+	Codex      Harness = "codex"
 )
 
 type Options struct {

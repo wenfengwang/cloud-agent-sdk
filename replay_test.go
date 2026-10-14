@@ -135,7 +135,7 @@ func TestReadBackThroughAPI(t *testing.T) {
 				}
 				// The subagent's final assistant message is the one message
 				// Claude Code persists but never streams.
-				if wantExtra := h == cloudagent.Claude && scenario == "subagent"; wantExtra != (extra > 0) {
+				if wantExtra := h == cloudagent.ClaudeCode && scenario == "subagent"; wantExtra != (extra > 0) {
 					t.Errorf("read back %d messages that were not streamed", extra)
 				}
 			})
@@ -160,7 +160,7 @@ func withoutUnstreamed(t *testing.T, h cloudagent.Harness, back, live []cloudage
 			continue
 		}
 		subagentFinal := m.ParentToolUseID != "" && (m.Kind == cloudagent.KindAssistant || m.Kind == cloudagent.KindReasoning)
-		if h != cloudagent.Claude || !subagentFinal {
+		if h != cloudagent.ClaudeCode || !subagentFinal {
 			t.Errorf("read back message %s (%s) was not streamed", m.ID, m.Kind)
 		}
 	}

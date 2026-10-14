@@ -22,7 +22,7 @@ func newTestRuntime(t *testing.T, h *fakeHarness) *Runtime {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
 	runtime, err := New(Config{
-		Harness:   "claude",
+		Harness:   "claudecode",
 		Model:     "test-model",
 		WorkDir:   "/work",
 		Home:      "/harness-home",
@@ -102,7 +102,7 @@ func TestNewWritesAgentIndex(t *testing.T) {
 	}
 	got := readAgentJSON(t, runtime)
 	want := map[string]any{
-		"harness": "claude", "model": "test-model", "workdir": "/work",
+		"harness": "claudecode", "model": "test-model", "workdir": "/work",
 		"home": "/harness-home", "harness_session_id": "",
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -119,7 +119,7 @@ func TestNewFailsWhenIndexCannotBeWritten(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(home, ".cloudagent"), []byte("not a directory"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := New(Config{Harness: "claude", WorkDir: "/work", Adapter: &fakeHarness{}}); err == nil {
+	if _, err := New(Config{Harness: "claudecode", WorkDir: "/work", Adapter: &fakeHarness{}}); err == nil {
 		t.Fatal("New succeeded, want an index error")
 	}
 }

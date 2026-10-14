@@ -78,7 +78,7 @@ sequenceDiagram
 | Binding | Loopback only (`127.0.0.1:8787` by default); non-loopback addresses are rejected at startup |
 | Session identity | Session ID is `AgentRuntime.ID()` |
 | Session storage | In memory only; lost on restart |
-| Shell selection | The session's harness: `claude` sessions belong to `/claude`, `openai` sessions to `/codex` |
+| Shell selection | The session's harness: `claudecode` sessions belong to `/claude`, `codex` sessions to `/codex` |
 | Turn context | `context.WithCancel(context.Background())` per turn, never the request context |
 | Active turn | At most one per session, guarded by the backend's state machine and enforced by the SDK |
 | Turn end signal | The backend's `turn.ended` event, published only after `Result` returns |
@@ -167,7 +167,7 @@ The backend validates every request before calling the SDK, because `New` and `T
   "displayName": "Alex Rivera",
   "harnesses": [
     {
-      "harness": "claude",
+      "harness": "claudecode",
       "label": "Claude Code",
       "available": true,
       "version": "2.1.300",
@@ -204,19 +204,19 @@ The backend validates every request before calling the SDK, because `New` and `T
 
 ```json
 {
-  "harness": "openai",
+  "harness": "codex",
   "workDir": "/home/alex/code/storefront",
   "model": "",
   "worktree": {"enabled": true, "baseBranch": "main"}
 }
 ```
 
-`harness` is `claude` or `openai`. `workDir` must be absolute and an existing directory. An empty `model` selects the harness default. `worktree` is optional.
+`harness` is `claudecode` or `codex`. `workDir` must be absolute and an existing directory. An empty `model` selects the harness default. `worktree` is optional.
 
 ```json
 {
   "id": "0192f0c1-7a2b-7c3d-9e4f-5a6b7c8d9e0f",
-  "harness": "openai",
+  "harness": "codex",
   "title": "Add pagination to the order list",
   "projectPath": "/home/alex/code/storefront",
   "projectName": "storefront",

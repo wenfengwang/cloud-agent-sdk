@@ -43,7 +43,7 @@ Conversation data is stored once, in the harness's own home directory. The toolk
 ```go
 import cloudagent "github.com/wenfengwang/cloud-agent-sdk"
 
-agent, err := cloudagent.New(cloudagent.Claude, cloudagent.Options{WorkDir: "."})
+agent, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "."})
 if err != nil {
 	return err
 }
@@ -68,7 +68,7 @@ for msg, err := range turn.Messages() {
 res, err := turn.Result()
 ```
 
-Swap `cloudagent.Claude` for `cloudagent.OpenAI` and the same code drives Codex.
+Swap `cloudagent.ClaudeCode` for `cloudagent.Codex` and the same code drives Codex.
 
 ## Supported harnesses
 

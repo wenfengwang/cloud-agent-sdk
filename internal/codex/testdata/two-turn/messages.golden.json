@@ -1,0 +1,108 @@
+[
+  {
+    "ID": "01a13c3e-631e-7020-96ea-c2d7251db215",
+    "Kind": "user",
+    "User": {
+      "Text": "Remember the code word marmalade. Reply only with OK."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3e-631e-7020-96ea-c2d7251db215",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Remember the code word marmalade. Reply only with OK.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3e-5a3c-7a22-81c1-a039b08c16cf",
+        "turnId": "01a13c3e-6312-7483-ad21-c79ffbf216fd",
+        "completedAtMs": 1792012083998
+      },
+      "emittedAtMs": 1792012083999
+    }
+  },
+  {
+    "ID": "msg_0f4615e4fa3336eb016acfef3682f88199b9e130253732a42e",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "OK"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0f4615e4fa3336eb016acfef3682f88199b9e130253732a42e",
+          "text": "OK",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3e-5a3c-7a22-81c1-a039b08c16cf",
+        "turnId": "01a13c3e-6312-7483-ad21-c79ffbf216fd",
+        "completedAtMs": 1792012086713
+      },
+      "emittedAtMs": 1792012086716
+    }
+  },
+  {
+    "ID": "01a13c3e-6e1b-7bc3-9cf8-a585ecd90a20",
+    "Kind": "user",
+    "User": {
+      "Text": "What code word did I ask you to remember? Reply with the word only."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3e-6e1b-7bc3-9cf8-a585ecd90a20",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "What code word did I ask you to remember? Reply with the word only.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3e-5a3c-7a22-81c1-a039b08c16cf",
+        "turnId": "01a13c3e-6e15-7f43-a9a2-bd1ffb21eeb7",
+        "completedAtMs": 1792012086811
+      },
+      "emittedAtMs": 1792012086812
+    }
+  },
+  {
+    "ID": "msg_0f4615e4fa3336eb016acfef38d20c8199bc068cbf6fc3d520",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "marmalade"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0f4615e4fa3336eb016acfef38d20c8199bc068cbf6fc3d520",
+          "text": "marmalade",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3e-5a3c-7a22-81c1-a039b08c16cf",
+        "turnId": "01a13c3e-6e15-7f43-a9a2-bd1ffb21eeb7",
+        "completedAtMs": 1792012089354
+      },
+      "emittedAtMs": 1792012089357
+    }
+  }
+]

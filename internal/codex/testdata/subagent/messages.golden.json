@@ -1,0 +1,349 @@
+[
+  {
+    "ID": "01a13c3e-0659-7ef2-a5b9-80a72afd66ba",
+    "Kind": "user",
+    "User": {
+      "Text": "Delegate this task to a subagent: count the lines of the file notes.txt in the current directory. Then report the number it found."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3e-0659-7ef2-a5b9-80a72afd66ba",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Delegate this task to a subagent: count the lines of the file notes.txt in the current directory. Then report the number it found.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "completedAtMs": 1792012060250
+      },
+      "emittedAtMs": 1792012060251
+    }
+  },
+  {
+    "ID": "msg_01a0d76c3b591668016acfef1e5d908198b53a293c61927ec7",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll delegate the line count to a subagent and report its result."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_01a0d76c3b591668016acfef1e5d908198b53a293c61927ec7",
+          "text": "I’ll delegate the line count to a subagent and report its result.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "completedAtMs": 1792012062990
+      },
+      "emittedAtMs": 1792012062993
+    }
+  },
+  {
+    "ID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+      "RawName": "subAgentActivity",
+      "Name": "subagent",
+      "InputType": "*message.SubagentInput",
+      "Input": {
+        "Description": "/root/count_lines",
+        "Prompt": "",
+        "Type": ""
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "subAgentActivity",
+          "model": "gpt-6.1-sol",
+          "reasoningEffort": "low",
+          "id": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+          "kind": "started",
+          "agentThreadId": "01a13c3e-16c5-7821-9def-cb531a588d3c",
+          "agentPath": "/root/count_lines"
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "startedAtMs": 1792012064462
+      },
+      "emittedAtMs": 1792012064462
+    }
+  },
+  {
+    "ID": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5",
+    "ParentToolUseID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "wc -l notes.txt",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'wc -l notes.txt'",
+          "cwd": "@WORKDIR@",
+          "processId": "99013",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "wc -l notes.txt"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3e-16c5-7821-9def-cb531a588d3c",
+        "turnId": "01a13c3e-16ce-7331-8cc0-dc502ce377ba",
+        "startedAtMs": 1792012066692
+      },
+      "emittedAtMs": 1792012066693
+    }
+  },
+  {
+    "ID": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5/result",
+    "ParentToolUseID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "       3 notes.txt\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-920438a4-12e6-4862-a2c1-2d6447eeafb5",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'wc -l notes.txt'",
+          "cwd": "@WORKDIR@",
+          "processId": "99013",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "wc -l notes.txt"
+            }
+          ],
+          "aggregatedOutput": "       3 notes.txt\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3e-16c5-7821-9def-cb531a588d3c",
+        "turnId": "01a13c3e-16ce-7331-8cc0-dc502ce377ba",
+        "completedAtMs": 1792012066692
+      },
+      "emittedAtMs": 1792012066693
+    }
+  },
+  {
+    "ID": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+      "RawName": "collabAgentToolCall",
+      "Name": "unknown",
+      "InputType": "*message.UnknownInput",
+      "Input": {
+        "Raw": {
+          "type": "collabAgentToolCall",
+          "id": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+          "tool": "wait",
+          "status": "inProgress",
+          "senderThreadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+          "receiverThreadIds": [],
+          "prompt": null,
+          "model": null,
+          "reasoningEffort": null,
+          "agentsStates": {}
+        }
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "collabAgentToolCall",
+          "id": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+          "tool": "wait",
+          "status": "inProgress",
+          "senderThreadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+          "receiverThreadIds": [],
+          "prompt": null,
+          "model": null,
+          "reasoningEffort": null,
+          "agentsStates": {}
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "startedAtMs": 1792012066827
+      },
+      "emittedAtMs": 1792012066827
+    }
+  },
+  {
+    "ID": "msg_01bfd280c3a02955016acfef279d9c819b830967234c5bf19e",
+    "ParentToolUseID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "notes.txt contains 3 lines."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_01bfd280c3a02955016acfef279d9c819b830967234c5bf19e",
+          "text": "notes.txt contains 3 lines.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3e-16c5-7821-9def-cb531a588d3c",
+        "turnId": "01a13c3e-16ce-7331-8cc0-dc502ce377ba",
+        "completedAtMs": 1792012071948
+      },
+      "emittedAtMs": 1792012071952
+    }
+  },
+  {
+    "ID": "subagent-completed-01a13c3e-16ce-7331-8cc0-dc502ce377ba",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "call_9d983b8d7e1f4c8ea27f881cca3b359f",
+      "Name": "subagent",
+      "OutputType": "*message.TextOutput",
+      "Output": {
+        "Text": "notes.txt contains 3 lines."
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "subAgentActivity",
+          "model": null,
+          "reasoningEffort": null,
+          "id": "subagent-completed-01a13c3e-16ce-7331-8cc0-dc502ce377ba",
+          "kind": "completed",
+          "agentThreadId": "01a13c3e-16c5-7821-9def-cb531a588d3c",
+          "agentPath": "/root/count_lines"
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "startedAtMs": 1792012072132
+      },
+      "emittedAtMs": 1792012072132
+    }
+  },
+  {
+    "ID": "call_15ac2866adfe44e1b1eec2092e7e4b5f/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+      "Name": "unknown",
+      "OutputType": "*message.UnknownOutput",
+      "Output": {
+        "Raw": {
+          "type": "collabAgentToolCall",
+          "id": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+          "tool": "wait",
+          "status": "completed",
+          "senderThreadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+          "receiverThreadIds": [],
+          "prompt": null,
+          "model": null,
+          "reasoningEffort": null,
+          "agentsStates": {}
+        }
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "collabAgentToolCall",
+          "id": "call_15ac2866adfe44e1b1eec2092e7e4b5f",
+          "tool": "wait",
+          "status": "completed",
+          "senderThreadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+          "receiverThreadIds": [],
+          "prompt": null,
+          "model": null,
+          "reasoningEffort": null,
+          "agentsStates": {}
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "completedAtMs": 1792012072133
+      },
+      "emittedAtMs": 1792012072134
+    }
+  },
+  {
+    "ID": "msg_01a0d76c3b591668016acfef29da948198a07e3053b0ca07ba",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "The subagent found **3 lines** in `notes.txt`."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_01a0d76c3b591668016acfef29da948198a07e3053b0ca07ba",
+          "text": "The subagent found **3 lines** in `notes.txt`.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-fec2-7351-8950-6f8a6c38bfb3",
+        "turnId": "01a13c3e-064e-7c12-9a48-2d893bc61a39",
+        "completedAtMs": 1792012074378
+      },
+      "emittedAtMs": 1792012074381
+    }
+  }
+]

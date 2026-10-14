@@ -1,0 +1,8 @@
+{
+  "harness": "codex",
+  "version": "0.162.1",
+  "scenario": "glob-grep",
+  "prompts": [
+    "First list the files that match the pattern src/*.go. Then search the src directory for the word needle and tell me which file contains it."
+  ]
+}

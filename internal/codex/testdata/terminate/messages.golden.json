@@ -1,0 +1,99 @@
+[
+  {
+    "ID": "01a13c3e-4ae2-7ff2-914d-1e9e39ecdd4a",
+    "Kind": "user",
+    "User": {
+      "Text": "Run the shell command `sleep 30`, then reply with done."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3e-4ae2-7ff2-914d-1e9e39ecdd4a",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Run the shell command `sleep 30`, then reply with done.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
+        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
+        "completedAtMs": 1792012077794
+      },
+      "emittedAtMs": 1792012077796
+    }
+  },
+  {
+    "ID": "msg_0740fa804bafad60016acfef3016448198b401e9aaa0fba2aa",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll run `sleep 30`, then reply with done."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0740fa804bafad60016acfef3016448198b401e9aaa0fba2aa",
+          "text": "I’ll run `sleep 30`, then reply with done.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
+        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
+        "completedAtMs": 1792012080613
+      },
+      "emittedAtMs": 1792012080614
+    }
+  },
+  {
+    "ID": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "sleep 30",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'sleep 30'",
+          "cwd": "@WORKDIR@",
+          "processId": "54743",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "sleep 30"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
+        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
+        "startedAtMs": 1792012081427
+      },
+      "emittedAtMs": 1792012081428
+    }
+  }
+]

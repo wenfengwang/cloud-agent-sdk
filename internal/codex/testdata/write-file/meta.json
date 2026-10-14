@@ -1,0 +1,8 @@
+{
+  "harness": "codex",
+  "version": "0.162.1",
+  "scenario": "write-file",
+  "prompts": [
+    "Create a new file named created.txt in the current directory whose entire content is the single line: hello from cloudagent"
+  ]
+}

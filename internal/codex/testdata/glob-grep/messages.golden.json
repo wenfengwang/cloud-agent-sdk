@@ -1,0 +1,361 @@
+[
+  {
+    "ID": "01a13c3d-d45c-7542-b0ca-d46531780f3a",
+    "Kind": "user",
+    "User": {
+      "Text": "First list the files that match the pattern src/*.go. Then search the src directory for the word needle and tell me which file contains it."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3d-d45c-7542-b0ca-d46531780f3a",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "First list the files that match the pattern src/*.go. Then search the src directory for the word needle and tell me which file contains it.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012047452
+      },
+      "emittedAtMs": 1792012047454
+    }
+  },
+  {
+    "ID": "msg_08075ab90634bba9016acfef11a2c8819a83a2121e9d0216b6",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll list the matching Go files, then search `src` for the word `needle`."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_08075ab90634bba9016acfef11a2c8819a83a2121e9d0216b6",
+          "text": "I’ll list the matching Go files, then search `src` for the word `needle`.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012050131
+      },
+      "emittedAtMs": 1792012050134
+    }
+  },
+  {
+    "ID": "exec-5388d647-0488-48c1-a9c1-7df080f8d460",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-5388d647-0488-48c1-a9c1-7df080f8d460",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "rg --files -g '*.go' src | awk ' /^src\\/[^/]+\\.go$/ '",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-5388d647-0488-48c1-a9c1-7df080f8d460",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"rg --files -g '*.go' src | awk ' /\"'^src'\"\\\\/[\"'^/]+'\"\\\\.go\"'$/ '\"'\"",
+          "cwd": "@WORKDIR@",
+          "processId": "19710",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "listFiles",
+              "command": "rg --files -g '*.go' src",
+              "path": "src"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "startedAtMs": 1792012051370
+      },
+      "emittedAtMs": 1792012051371
+    }
+  },
+  {
+    "ID": "exec-5388d647-0488-48c1-a9c1-7df080f8d460/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-5388d647-0488-48c1-a9c1-7df080f8d460",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "awk: nonterminated character class ^src\\/[^\n source line number 1\n context is\n\t \u003e\u003e\u003e  /^src\\/[^/ \u003c\u003c\u003c \n",
+        "ExitCode": 2
+      },
+      "IsError": true
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-5388d647-0488-48c1-a9c1-7df080f8d460",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"rg --files -g '*.go' src | awk ' /\"'^src'\"\\\\/[\"'^/]+'\"\\\\.go\"'$/ '\"'\"",
+          "cwd": "@WORKDIR@",
+          "processId": "19710",
+          "source": "unifiedExecStartup",
+          "status": "failed",
+          "commandActions": [
+            {
+              "type": "listFiles",
+              "command": "rg --files -g '*.go' src",
+              "path": "src"
+            }
+          ],
+          "aggregatedOutput": "awk: nonterminated character class ^src\\/[^\n source line number 1\n context is\n\t \u003e\u003e\u003e  /^src\\/[^/ \u003c\u003c\u003c \n",
+          "exitCode": 2,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012051370
+      },
+      "emittedAtMs": 1792012051371
+    }
+  },
+  {
+    "ID": "exec-f2c92d5a-971b-40da-a395-98970e145cfc",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-f2c92d5a-971b-40da-a395-98970e145cfc",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "rg -n -w needle src",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-f2c92d5a-971b-40da-a395-98970e145cfc",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'rg -n -w needle src'",
+          "cwd": "@WORKDIR@",
+          "processId": "13524",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "search",
+              "command": "rg -n -w needle src",
+              "query": "needle",
+              "path": "src"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "startedAtMs": 1792012051413
+      },
+      "emittedAtMs": 1792012051413
+    }
+  },
+  {
+    "ID": "exec-f2c92d5a-971b-40da-a395-98970e145cfc/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-f2c92d5a-971b-40da-a395-98970e145cfc",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "src/bravo.go:3:// needle is here.\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-f2c92d5a-971b-40da-a395-98970e145cfc",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'rg -n -w needle src'",
+          "cwd": "@WORKDIR@",
+          "processId": "13524",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "search",
+              "command": "rg -n -w needle src",
+              "query": "needle",
+              "path": "src"
+            }
+          ],
+          "aggregatedOutput": "src/bravo.go:3:// needle is here.\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012051413
+      },
+      "emittedAtMs": 1792012051414
+    }
+  },
+  {
+    "ID": "exec-41b8d492-c95f-4d75-89e8-472e1241642e",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-41b8d492-c95f-4d75-89e8-472e1241642e",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "rg --files src -g '*.go' | rg '^src/[^/]+[.]go$'",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-41b8d492-c95f-4d75-89e8-472e1241642e",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"rg --files src -g '*.go' | rg '\"'^src/[''^/]+[.]go$'\"'\"",
+          "cwd": "@WORKDIR@",
+          "processId": "81402",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "listFiles",
+              "command": "rg --files src -g '*.go'",
+              "path": "src"
+            },
+            {
+              "type": "search",
+              "command": "rg '^src/[''^/]+[.]go$'",
+              "query": "^src/[^/]+[.]go$",
+              "path": null
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "startedAtMs": 1792012054167
+      },
+      "emittedAtMs": 1792012054167
+    }
+  },
+  {
+    "ID": "exec-41b8d492-c95f-4d75-89e8-472e1241642e/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-41b8d492-c95f-4d75-89e8-472e1241642e",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "src/alpha.go\nsrc/bravo.go\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-41b8d492-c95f-4d75-89e8-472e1241642e",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"rg --files src -g '*.go' | rg '\"'^src/[''^/]+[.]go$'\"'\"",
+          "cwd": "@WORKDIR@",
+          "processId": "81402",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "listFiles",
+              "command": "rg --files src -g '*.go'",
+              "path": "src"
+            },
+            {
+              "type": "search",
+              "command": "rg '^src/[''^/]+[.]go$'",
+              "query": "^src/[^/]+[.]go$",
+              "path": null
+            }
+          ],
+          "aggregatedOutput": "src/alpha.go\nsrc/bravo.go\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012054167
+      },
+      "emittedAtMs": 1792012054168
+    }
+  },
+  {
+    "ID": "msg_08075ab90634bba9016acfef190e30819a8de2b8d9607a7731",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "Files matching `src/*.go`:\n\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word `needle` appears in `src/bravo.go` on line 3."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_08075ab90634bba9016acfef190e30819a8de2b8d9607a7731",
+          "text": "Files matching `src/*.go`:\n\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word `needle` appears in `src/bravo.go` on line 3.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-cefc-7d31-bb2d-6e0c50f5a5fa",
+        "turnId": "01a13c3d-d451-77e0-8feb-2935e165766e",
+        "completedAtMs": 1792012057868
+      },
+      "emittedAtMs": 1792012057873
+    }
+  }
+]

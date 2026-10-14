@@ -1,0 +1,8 @@
+{
+  "harness": "codex",
+  "version": "0.162.1",
+  "scenario": "shell",
+  "prompts": [
+    "Run the shell command `echo cloudagent-shell-check` once, then reply with its output. Do not use any other tool."
+  ]
+}

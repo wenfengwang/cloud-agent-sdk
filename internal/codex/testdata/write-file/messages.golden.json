@@ -1,0 +1,158 @@
+[
+  {
+    "ID": "01a13c3f-aec9-7091-bc48-b7f349214bff",
+    "Kind": "user",
+    "User": {
+      "Text": "Create a new file named created.txt in the current directory whose entire content is the single line: hello from cloudagent"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3f-aec9-7091-bc48-b7f349214bff",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Create a new file named created.txt in the current directory whose entire content is the single line: hello from cloudagent",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3f-a86d-7c83-a13f-93a661aea15d",
+        "turnId": "01a13c3f-aeb7-7820-8a95-f9d77157a3a3",
+        "completedAtMs": 1792012168905
+      },
+      "emittedAtMs": 1792012168907
+    }
+  },
+  {
+    "ID": "msg_0c34207305b4e1c0016acfef8a67fc819aad794a74071fc446",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll create `created.txt` with the requested line."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0c34207305b4e1c0016acfef8a67fc819aad794a74071fc446",
+          "text": "I’ll create `created.txt` with the requested line.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3f-a86d-7c83-a13f-93a661aea15d",
+        "turnId": "01a13c3f-aeb7-7820-8a95-f9d77157a3a3",
+        "completedAtMs": 1792012170832
+      },
+      "emittedAtMs": 1792012170833
+    }
+  },
+  {
+    "ID": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80",
+      "RawName": "fileChange",
+      "Name": "file_patch",
+      "InputType": "*message.FilePatchInput",
+      "Input": {
+        "Changes": [
+          {
+            "Path": "@WORKDIR@/created.txt",
+            "Kind": "add",
+            "Diff": "hello from cloudagent\n"
+          }
+        ]
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "fileChange",
+          "id": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80",
+          "changes": [
+            {
+              "path": "@WORKDIR@/created.txt",
+              "kind": {
+                "type": "add"
+              },
+              "diff": "hello from cloudagent\n"
+            }
+          ],
+          "status": "inProgress"
+        },
+        "threadId": "01a13c3f-a86d-7c83-a13f-93a661aea15d",
+        "turnId": "01a13c3f-aeb7-7820-8a95-f9d77157a3a3",
+        "startedAtMs": 1792012172112
+      },
+      "emittedAtMs": 1792012172112
+    }
+  },
+  {
+    "ID": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80",
+      "Name": "file_patch",
+      "OutputType": "*message.TextOutput",
+      "Output": {
+        "Text": "completed"
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "fileChange",
+          "id": "exec-8b84f8a7-d4ef-4bdf-96fd-b1cf60fffe80",
+          "changes": [
+            {
+              "path": "@WORKDIR@/created.txt",
+              "kind": {
+                "type": "add"
+              },
+              "diff": "hello from cloudagent\n"
+            }
+          ],
+          "status": "completed"
+        },
+        "threadId": "01a13c3f-a86d-7c83-a13f-93a661aea15d",
+        "turnId": "01a13c3f-aeb7-7820-8a95-f9d77157a3a3",
+        "completedAtMs": 1792012172113
+      },
+      "emittedAtMs": 1792012172113
+    }
+  },
+  {
+    "ID": "msg_0c34207305b4e1c0016acfef8df924819abc87935c32e28453",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "Created [created.txt](@WORKDIR@/created.txt) containing the single line `hello from cloudagent`."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0c34207305b4e1c0016acfef8df924819abc87935c32e28453",
+          "text": "Created [created.txt](@WORKDIR@/created.txt) containing the single line `hello from cloudagent`.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3f-a86d-7c83-a13f-93a661aea15d",
+        "turnId": "01a13c3f-aeb7-7820-8a95-f9d77157a3a3",
+        "completedAtMs": 1792012175206
+      },
+      "emittedAtMs": 1792012175209
+    }
+  }
+]

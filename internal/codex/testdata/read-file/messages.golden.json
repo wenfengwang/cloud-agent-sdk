@@ -1,0 +1,171 @@
+[
+  {
+    "ID": "01a13c3d-66f7-7d13-aa38-c30c38510bf3",
+    "Kind": "user",
+    "User": {
+      "Text": "Read the file notes.txt in the current directory and reply with its second line, verbatim."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3d-66f7-7d13-aa38-c30c38510bf3",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Read the file notes.txt in the current directory and reply with its second line, verbatim.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3d-632c-7042-90c2-d532886fe771",
+        "turnId": "01a13c3d-66e9-7931-b32a-a541c74e2e6c",
+        "completedAtMs": 1792012019447
+      },
+      "emittedAtMs": 1792012019449
+    }
+  },
+  {
+    "ID": "msg_0c7a50b0399bb1a7016acfeef5a7dc81998ef229a4e56e6b96",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll read `notes.txt` and return its second line verbatim.\n"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0c7a50b0399bb1a7016acfeef5a7dc81998ef229a4e56e6b96",
+          "text": "I’ll read `notes.txt` and return its second line verbatim.\n",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-632c-7042-90c2-d532886fe771",
+        "turnId": "01a13c3d-66e9-7931-b32a-a541c74e2e6c",
+        "completedAtMs": 1792012022203
+      },
+      "emittedAtMs": 1792012022208
+    }
+  },
+  {
+    "ID": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "sed -n '2p' notes.txt",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"sed -n '2p' notes.txt\"",
+          "cwd": "@WORKDIR@",
+          "processId": "20684",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "read",
+              "command": "sed -n 2p notes.txt",
+              "name": "notes.txt",
+              "path": "@WORKDIR@/notes.txt"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3d-632c-7042-90c2-d532886fe771",
+        "turnId": "01a13c3d-66e9-7931-b32a-a541c74e2e6c",
+        "startedAtMs": 1792012022815
+      },
+      "emittedAtMs": 1792012022816
+    }
+  },
+  {
+    "ID": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "bravo line\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-d23ac134-4d0b-4663-a6df-4ed2dabac3bb",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc \"sed -n '2p' notes.txt\"",
+          "cwd": "@WORKDIR@",
+          "processId": "20684",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "read",
+              "command": "sed -n 2p notes.txt",
+              "name": "notes.txt",
+              "path": "@WORKDIR@/notes.txt"
+            }
+          ],
+          "aggregatedOutput": "bravo line\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3d-632c-7042-90c2-d532886fe771",
+        "turnId": "01a13c3d-66e9-7931-b32a-a541c74e2e6c",
+        "completedAtMs": 1792012022815
+      },
+      "emittedAtMs": 1792012022819
+    }
+  },
+  {
+    "ID": "msg_0c7a50b0399bb1a7016acfeef8f6bc8199a67e293846877863",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "bravo line"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0c7a50b0399bb1a7016acfeef8f6bc8199a67e293846877863",
+          "text": "bravo line",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-632c-7042-90c2-d532886fe771",
+        "turnId": "01a13c3d-66e9-7931-b32a-a541c74e2e6c",
+        "completedAtMs": 1792012025238
+      },
+      "emittedAtMs": 1792012025241
+    }
+  }
+]

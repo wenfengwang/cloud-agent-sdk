@@ -1,0 +1,55 @@
+[
+  {
+    "ID": "01a13c3d-419d-7d10-9c43-57e3ae2e6e5d",
+    "Kind": "user",
+    "User": {
+      "Text": "Reply with exactly this sentence and nothing else: The quick brown fox jumps over the lazy dog. Do not use any tools."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3d-419d-7d10-9c43-57e3ae2e6e5d",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Reply with exactly this sentence and nothing else: The quick brown fox jumps over the lazy dog. Do not use any tools.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3d-3b61-7951-8f39-aafc20466299",
+        "turnId": "01a13c3d-4158-7ee1-9320-e8e8585ba499",
+        "completedAtMs": 1792012009886
+      },
+      "emittedAtMs": 1792012009889
+    }
+  },
+  {
+    "ID": "msg_0c1f245a7a0302b3016acfeeeb6d78819b9cf0989534154e71",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "The quick brown fox jumps over the lazy dog."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0c1f245a7a0302b3016acfeeeb6d78819b9cf0989534154e71",
+          "text": "The quick brown fox jumps over the lazy dog.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-3b61-7951-8f39-aafc20466299",
+        "turnId": "01a13c3d-4158-7ee1-9320-e8e8585ba499",
+        "completedAtMs": 1792012011779
+      },
+      "emittedAtMs": 1792012011780
+    }
+  }
+]

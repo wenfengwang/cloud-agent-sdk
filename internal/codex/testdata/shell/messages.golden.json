@@ -1,0 +1,142 @@
+[
+  {
+    "ID": "01a13c3d-51a5-7e40-8a35-d394a99b4ed1",
+    "Kind": "user",
+    "User": {
+      "Text": "Run the shell command `echo cloudagent-shell-check` once, then reply with its output. Do not use any other tool."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3d-51a5-7e40-8a35-d394a99b4ed1",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Run the shell command `echo cloudagent-shell-check` once, then reply with its output. Do not use any other tool.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3d-4afb-7773-a035-ff0020175f43",
+        "turnId": "01a13c3d-5199-77b2-827e-bae876467a34",
+        "completedAtMs": 1792012013989
+      },
+      "emittedAtMs": 1792012013991
+    }
+  },
+  {
+    "ID": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "echo cloudagent-shell-check",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'echo cloudagent-shell-check'",
+          "cwd": "@WORKDIR@",
+          "processId": "29192",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "echo cloudagent-shell-check"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3d-4afb-7773-a035-ff0020175f43",
+        "turnId": "01a13c3d-5199-77b2-827e-bae876467a34",
+        "startedAtMs": 1792012016191
+      },
+      "emittedAtMs": 1792012016197
+    }
+  },
+  {
+    "ID": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "cloudagent-shell-check\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-5c3b796b-8f73-4592-9b57-ea8820d8eb4e",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'echo cloudagent-shell-check'",
+          "cwd": "@WORKDIR@",
+          "processId": "29192",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "echo cloudagent-shell-check"
+            }
+          ],
+          "aggregatedOutput": "cloudagent-shell-check\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3d-4afb-7773-a035-ff0020175f43",
+        "turnId": "01a13c3d-5199-77b2-827e-bae876467a34",
+        "completedAtMs": 1792012016192
+      },
+      "emittedAtMs": 1792012016198
+    }
+  },
+  {
+    "ID": "msg_0207af43ed45acf4016acfeef1e2dc81998dd0bdb1bf91a817",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "cloudagent-shell-check"
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_0207af43ed45acf4016acfeef1e2dc81998dd0bdb1bf91a817",
+          "text": "cloudagent-shell-check",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3d-4afb-7773-a035-ff0020175f43",
+        "turnId": "01a13c3d-5199-77b2-827e-bae876467a34",
+        "completedAtMs": 1792012018042
+      },
+      "emittedAtMs": 1792012018045
+    }
+  }
+]

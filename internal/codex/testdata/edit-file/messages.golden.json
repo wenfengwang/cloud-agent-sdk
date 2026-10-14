@@ -1,0 +1,251 @@
+[
+  {
+    "ID": "01a13c3f-d2d6-7a33-ac88-86a15bc37c49",
+    "Kind": "user",
+    "User": {
+      "Text": "In the file greeting.txt in the current directory, replace the word world with cloudagent. Change nothing else."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a13c3f-d2d6-7a33-ac88-86a15bc37c49",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "In the file greeting.txt in the current directory, replace the word world with cloudagent. Change nothing else.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "completedAtMs": 1792012178135
+      },
+      "emittedAtMs": 1792012178137
+    }
+  },
+  {
+    "ID": "msg_00bf3d1a7b09f7fe016acfef941f6c819991e0251f7e95df9b",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "I’ll replace `world` with `cloudagent` in `greeting.txt` and leave everything else unchanged."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_00bf3d1a7b09f7fe016acfef941f6c819991e0251f7e95df9b",
+          "text": "I’ll replace `world` with `cloudagent` in `greeting.txt` and leave everything else unchanged.",
+          "phase": "commentary",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "completedAtMs": 1792012180876
+      },
+      "emittedAtMs": 1792012180879
+    }
+  },
+  {
+    "ID": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1",
+      "RawName": "commandExecution",
+      "Name": "shell",
+      "InputType": "*message.ShellInput",
+      "Input": {
+        "Command": "cat greeting.txt",
+        "Description": "",
+        "TimeoutMs": 0
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'cat greeting.txt'",
+          "cwd": "@WORKDIR@",
+          "processId": "80676",
+          "source": "unifiedExecStartup",
+          "status": "inProgress",
+          "commandActions": [
+            {
+              "type": "read",
+              "command": "cat greeting.txt",
+              "name": "greeting.txt",
+              "path": "@WORKDIR@/greeting.txt"
+            }
+          ],
+          "aggregatedOutput": null,
+          "exitCode": null,
+          "durationMs": null
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "startedAtMs": 1792012181238
+      },
+      "emittedAtMs": 1792012181239
+    }
+  },
+  {
+    "ID": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1",
+      "Name": "shell",
+      "OutputType": "*message.ShellOutput",
+      "Output": {
+        "Output": "Hello, world!\n",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "commandExecution",
+          "id": "exec-34cd8142-1351-40bd-8bfb-7f5f49416ac1",
+          "pluginId": null,
+          "scriptPath": null,
+          "command": "/bin/zsh -lc 'cat greeting.txt'",
+          "cwd": "@WORKDIR@",
+          "processId": "80676",
+          "source": "unifiedExecStartup",
+          "status": "completed",
+          "commandActions": [
+            {
+              "type": "read",
+              "command": "cat greeting.txt",
+              "name": "greeting.txt",
+              "path": "@WORKDIR@/greeting.txt"
+            }
+          ],
+          "aggregatedOutput": "Hello, world!\n",
+          "exitCode": 0,
+          "durationMs": 0
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "completedAtMs": 1792012181238
+      },
+      "emittedAtMs": 1792012181239
+    }
+  },
+  {
+    "ID": "exec-677d114f-ba80-4a79-8c76-76025c16dd39",
+    "Kind": "tool_call",
+    "ToolCall": {
+      "ID": "exec-677d114f-ba80-4a79-8c76-76025c16dd39",
+      "RawName": "fileChange",
+      "Name": "file_patch",
+      "InputType": "*message.FilePatchInput",
+      "Input": {
+        "Changes": [
+          {
+            "Path": "@WORKDIR@/greeting.txt",
+            "Kind": "update",
+            "Diff": "@@ -1 +1 @@\n-Hello, world!\n+Hello, cloudagent!\n"
+          }
+        ]
+      }
+    },
+    "Raw": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "fileChange",
+          "id": "exec-677d114f-ba80-4a79-8c76-76025c16dd39",
+          "changes": [
+            {
+              "path": "@WORKDIR@/greeting.txt",
+              "kind": {
+                "type": "update",
+                "move_path": null
+              },
+              "diff": "@@ -1 +1 @@\n-Hello, world!\n+Hello, cloudagent!\n"
+            }
+          ],
+          "status": "inProgress"
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "startedAtMs": 1792012184291
+      },
+      "emittedAtMs": 1792012184291
+    }
+  },
+  {
+    "ID": "exec-677d114f-ba80-4a79-8c76-76025c16dd39/result",
+    "Kind": "tool_result",
+    "ToolResult": {
+      "CallID": "exec-677d114f-ba80-4a79-8c76-76025c16dd39",
+      "Name": "file_patch",
+      "OutputType": "*message.TextOutput",
+      "Output": {
+        "Text": "completed"
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "fileChange",
+          "id": "exec-677d114f-ba80-4a79-8c76-76025c16dd39",
+          "changes": [
+            {
+              "path": "@WORKDIR@/greeting.txt",
+              "kind": {
+                "type": "update",
+                "move_path": null
+              },
+              "diff": "@@ -1 +1 @@\n-Hello, world!\n+Hello, cloudagent!\n"
+            }
+          ],
+          "status": "completed"
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "completedAtMs": 1792012184292
+      },
+      "emittedAtMs": 1792012184292
+    }
+  },
+  {
+    "ID": "msg_00bf3d1a7b09f7fe016acfef9a59148199a21fc63195c4e437",
+    "Kind": "assistant",
+    "Assistant": {
+      "Text": "Replaced `world` with `cloudagent` in `greeting.txt`. Nothing else changed."
+    },
+    "Raw": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_00bf3d1a7b09f7fe016acfef9a59148199a21fc63195c4e437",
+          "text": "Replaced `world` with `cloudagent` in `greeting.txt`. Nothing else changed.",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a13c3f-cb97-70f2-917c-2f8f640b4b62",
+        "turnId": "01a13c3f-d2c4-7ba0-bc30-29224e987b2b",
+        "completedAtMs": 1792012187020
+      },
+      "emittedAtMs": 1792012187024
+    }
+  }
+]

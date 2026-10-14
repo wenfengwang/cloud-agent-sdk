@@ -1,0 +1,8 @@
+{
+  "harness": "codex",
+  "version": "0.162.1",
+  "scenario": "terminate",
+  "prompts": [
+    "Run the shell command `sleep 30`, then reply with done."
+  ]
+}

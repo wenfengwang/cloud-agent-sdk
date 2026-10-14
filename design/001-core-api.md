@@ -278,12 +278,13 @@ Normalization rules applied at the source:
 | `tool_call` | `tool_use` content block | `item/started` of a tool item |
 | `tool_result` | `tool_result` content block of a user message | `item/completed` of a tool item |
 
-Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imageGeneration`, `contextCompaction`, `subAgentActivity`, and review-mode items are not emitted.
+Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imageGeneration`, `contextCompaction`, `subAgentActivity`, `functionCallOutput`, and review-mode items are not emitted.
 
 ## Harness Behavior
 
 | | Claude Code | Codex |
 |---|---|---|
+| Version | Pinned in [harness-versions.json](../harness-versions.json) | Pinned in [harness-versions.json](../harness-versions.json); protocol committed as [app-server.v2.schema.json](../internal/codex/schema/app-server.v2.schema.json) |
 | Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose`, with `--resume <session-id>` after the first turn | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` (first turn) or the existing thread, then `turn/start` per turn |
 | Turn accepted | The process started and the prompt was written | `turn/start` returned |
 | Permissions | `--permission-mode bypassPermissions` | approval policy `never`, sandbox `danger-full-access` |
@@ -315,6 +316,7 @@ Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imag
 - `Messages()` always starts from the turn's first message, during and after the turn.
 - `Terminate`, context cancellation, and `Close` stop a turn through the same path and differ only in the error `Result` returns.
 - No harness process outlives `Close`.
+- Each harness is supported at exactly its pinned version; recorded fixtures and the committed Codex schema come from that version.
 - Harnesses never wait on a permission prompt.
 
 ## Non-Goals
@@ -333,7 +335,7 @@ Codex `imageView` items are emitted as `unknown` tool calls. Codex `plan`, `imag
 - **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, completion, `Terminate`, context cancellation, `Close` during a turn, process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence (minus fields harnesses do not persist) is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
-- **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`.
+- **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`. They fail, rather than skip, when an installed CLI's version differs from its pin.
 
 ## Open Questions
 

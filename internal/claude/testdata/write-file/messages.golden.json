@@ -1,0 +1,194 @@
+[
+  {
+    "ID": "3cf35559-c7d4-43d5-85f0-8fbf5e1b7c2b",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "user",
+    "User": {
+      "Text": "Create a new file named created.txt in the current directory whose entire content is the single line: hello from cloudagent"
+    },
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "Create a new file named created.txt in the current directory whose entire content is the single line: hello from cloudagent"
+      },
+      "session_id": "@SESSION_ID@",
+      "parent_tool_use_id": null,
+      "uuid": "3cf35559-c7d4-43d5-85f0-8fbf5e1b7c2b",
+      "timestamp": "2026-10-14T20:25:32.174Z",
+      "isReplay": true
+    }
+  },
+  {
+    "ID": "9cc800e8-75af-4d5a-bf2a-d870f7690d56:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_call",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": {
+      "ID": "toolu_01Q37R9fn9Qe3pVLijQQWLiB",
+      "Name": "file_write",
+      "RawName": "Write",
+      "Input": {
+        "Path": "@WORKDIR@/created.txt",
+        "Content": "hello from cloudagent\n"
+      }
+    },
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2krRgXuNHHJyr6PVAGP",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Q37R9fn9Qe3pVLijQQWLiB",
+            "name": "Write",
+            "input": {
+              "file_path": "@WORKDIR@/created.txt",
+              "content": "hello from cloudagent\n"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 5496,
+          "cache_read_input_tokens": 17382,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 5496,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 16,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "9cc800e8-75af-4d5a-bf2a-d870f7690d56",
+      "timestamp": "2026-10-14T20:25:34.514Z"
+    }
+  },
+  {
+    "ID": "f2c7ff03-b8f9-4b08-8436-ac8b02d64501:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_result",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": {
+      "CallID": "toolu_01Q37R9fn9Qe3pVLijQQWLiB",
+      "Name": "file_write",
+      "Output": {
+        "Text": "File created successfully at: @WORKDIR@/created.txt (file state is current in your context — no need to Read it back)"
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_01Q37R9fn9Qe3pVLijQQWLiB",
+            "type": "tool_result",
+            "content": "File created successfully at: @WORKDIR@/created.txt (file state is current in your context — no need to Read it back)"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "f2c7ff03-b8f9-4b08-8436-ac8b02d64501",
+      "timestamp": "2026-10-14T20:25:34.551Z",
+      "tool_use_result": {
+        "type": "create",
+        "filePath": "@WORKDIR@/created.txt",
+        "content": "hello from cloudagent\n",
+        "structuredPatch": [],
+        "originalFile": null,
+        "userModified": false
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_01Q37R9fn9Qe3pVLijQQWLiB",
+          "permission_decision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "mode"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "ID": "f9d14208-b3e7-496e-baa9-f36456a94175:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "assistant",
+    "User": null,
+    "Assistant": {
+      "Text": "I created `created.txt` in the current directory. It holds the single line `hello from cloudagent`, followed by a newline."
+    },
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2krbUdmQzLb7Mh8n7hJ",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "I created `created.txt` in the current directory. It holds the single line `hello from cloudagent`, followed by a newline."
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 251,
+          "cache_read_input_tokens": 22878,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 251,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 40,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "f9d14208-b3e7-496e-baa9-f36456a94175",
+      "timestamp": "2026-10-14T20:25:36.048Z"
+    }
+  }
+]

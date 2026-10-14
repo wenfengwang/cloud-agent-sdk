@@ -1,0 +1,196 @@
+[
+  {
+    "ID": "3eaa9d4d-44bd-48ce-936e-8f15ab8efe2d",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "user",
+    "User": {
+      "Text": "Read the file notes.txt in the current directory and reply with its second line, verbatim."
+    },
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "Read the file notes.txt in the current directory and reply with its second line, verbatim."
+      },
+      "session_id": "@SESSION_ID@",
+      "parent_tool_use_id": null,
+      "uuid": "3eaa9d4d-44bd-48ce-936e-8f15ab8efe2d",
+      "timestamp": "2026-10-14T20:25:27.827Z",
+      "isReplay": true
+    }
+  },
+  {
+    "ID": "2d142874-9b86-4119-8593-7c252534a896:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_call",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": {
+      "ID": "toolu_015hivzLD92rwmWkn2akfLrK",
+      "Name": "file_read",
+      "RawName": "Read",
+      "Input": {
+        "Path": "@WORKDIR@/notes.txt",
+        "Offset": 0,
+        "Limit": 0
+      }
+    },
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2kr7CHEqu7n9QJLsgmb",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_015hivzLD92rwmWkn2akfLrK",
+            "name": "Read",
+            "input": {
+              "file_path": "@WORKDIR@/notes.txt"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 5481,
+          "cache_read_input_tokens": 17382,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 5481,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 16,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "2d142874-9b86-4119-8593-7c252534a896",
+      "timestamp": "2026-10-14T20:25:29.979Z"
+    }
+  },
+  {
+    "ID": "6df972fe-d036-46ea-829e-0838113a6bfe:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_result",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": {
+      "CallID": "toolu_015hivzLD92rwmWkn2akfLrK",
+      "Name": "file_read",
+      "Output": {
+        "Content": "1\talpha line\n2\tbravo line\n3\tcharlie line\n4\t"
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_015hivzLD92rwmWkn2akfLrK",
+            "type": "tool_result",
+            "content": "1\talpha line\n2\tbravo line\n3\tcharlie line\n4\t"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "6df972fe-d036-46ea-829e-0838113a6bfe",
+      "timestamp": "2026-10-14T20:25:30.034Z",
+      "tool_use_result": {
+        "type": "text",
+        "file": {
+          "filePath": "@WORKDIR@/notes.txt",
+          "content": "alpha line\nbravo line\ncharlie line\n",
+          "numLines": 4,
+          "startLine": 1,
+          "totalLines": 4
+        }
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_015hivzLD92rwmWkn2akfLrK",
+          "permission_decision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "mode"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "ID": "a1441cfa-f50f-40cf-aa61-f9c2279c7a5f:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "assistant",
+    "User": null,
+    "Assistant": {
+      "Text": "bravo line"
+    },
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2krGFzAVhkrDyuYRC6U",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "bravo line"
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 158,
+          "cache_read_input_tokens": 22863,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 158,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 6,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "a1441cfa-f50f-40cf-aa61-f9c2279c7a5f",
+      "timestamp": "2026-10-14T20:25:31.101Z"
+    }
+  }
+]

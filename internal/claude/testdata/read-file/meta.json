@@ -1,0 +1,8 @@
+{
+  "harness": "claude",
+  "version": "2.1.300",
+  "scenario": "read-file",
+  "prompts": [
+    "Read the file notes.txt in the current directory and reply with its second line, verbatim."
+  ]
+}

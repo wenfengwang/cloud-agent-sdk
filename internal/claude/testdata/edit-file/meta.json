@@ -1,0 +1,8 @@
+{
+  "harness": "claude",
+  "version": "2.1.300",
+  "scenario": "edit-file",
+  "prompts": [
+    "In the file greeting.txt in the current directory, replace the word world with cloudagent. Change nothing else."
+  ]
+}

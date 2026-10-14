@@ -1,0 +1,8 @@
+{
+  "harness": "claude",
+  "version": "2.1.300",
+  "scenario": "subagent",
+  "prompts": [
+    "Delegate this task to a subagent: count the lines of the file notes.txt in the current directory. Then report the number it found."
+  ]
+}

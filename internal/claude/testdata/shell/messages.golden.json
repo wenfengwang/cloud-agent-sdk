@@ -1,0 +1,196 @@
+[
+  {
+    "ID": "1ee87455-017a-4cf7-9eee-515f7628dc09",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "user",
+    "User": {
+      "Text": "Run the shell command `echo cloudagent-shell-check` once, then reply with its output. Do not use any other tool."
+    },
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "Run the shell command `echo cloudagent-shell-check` once, then reply with its output. Do not use any other tool."
+      },
+      "session_id": "@SESSION_ID@",
+      "parent_tool_use_id": null,
+      "uuid": "1ee87455-017a-4cf7-9eee-515f7628dc09",
+      "timestamp": "2026-10-14T20:25:21.512Z",
+      "isReplay": true
+    }
+  },
+  {
+    "ID": "17cb368d-5f58-4eb9-ba2d-9f41d56b3682:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_call",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": {
+      "ID": "toolu_014HUqteEE9jQ21reRXKZYHD",
+      "Name": "shell",
+      "RawName": "Bash",
+      "Input": {
+        "Command": "echo cloudagent-shell-check",
+        "Description": "Print a check string",
+        "TimeoutMs": 0
+      }
+    },
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2kqek4wta1VSYeWJr3B",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_014HUqteEE9jQ21reRXKZYHD",
+            "name": "Bash",
+            "input": {
+              "command": "echo cloudagent-shell-check",
+              "description": "Print a check string"
+            },
+            "caller": {
+              "type": "direct"
+            }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 22874,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 22874,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 16,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "17cb368d-5f58-4eb9-ba2d-9f41d56b3682",
+      "timestamp": "2026-10-14T20:25:25.133Z"
+    }
+  },
+  {
+    "ID": "081fcbf3-04b1-41b9-a7ab-a95d6c264177:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_result",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": {
+      "CallID": "toolu_014HUqteEE9jQ21reRXKZYHD",
+      "Name": "shell",
+      "Output": {
+        "Output": "cloudagent-shell-check",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_014HUqteEE9jQ21reRXKZYHD",
+            "type": "tool_result",
+            "content": "cloudagent-shell-check",
+            "is_error": false
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "081fcbf3-04b1-41b9-a7ab-a95d6c264177",
+      "timestamp": "2026-10-14T20:25:25.199Z",
+      "tool_use_result": {
+        "stdout": "cloudagent-shell-check",
+        "stderr": "",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_014HUqteEE9jQ21reRXKZYHD",
+          "permission_decision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "mode"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "ID": "acfe8039-ea9b-4eaf-b8e1-6346b3b0f613:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "assistant",
+    "User": null,
+    "Assistant": {
+      "Text": "The command printed:\n\n```\ncloudagent-shell-check\n```"
+    },
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": null,
+    "Raw": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-opus-5-5",
+        "id": "msg_011Cg2kquXKUVvXJqsS4Fe61",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The command printed:\n\n```\ncloudagent-shell-check\n```"
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 122,
+          "cache_read_input_tokens": 22874,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 122,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 22,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "acfe8039-ea9b-4eaf-b8e1-6346b3b0f613",
+      "timestamp": "2026-10-14T20:25:26.828Z"
+    }
+  }
+]

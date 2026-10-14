@@ -1,0 +1,9 @@
+{
+  "harness": "claude",
+  "version": "2.1.300",
+  "scenario": "two-turn",
+  "prompts": [
+    "Remember the code word marmalade. Reply only with OK.",
+    "What code word did I ask you to remember? Reply with the word only."
+  ]
+}

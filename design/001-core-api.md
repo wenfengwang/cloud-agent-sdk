@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented and verified offline against fixtures recorded from the pinned CLIs. The real CLI tests of [Testing](#testing) are not built yet.
+Partial. The public API, the turn lifecycle, the message buffer, the `~/.cloudagent` index, and the Claude Code and Codex adapters are implemented, verified offline against fixtures recorded from the pinned CLIs, and verified against the pinned CLIs by the real CLI tests of [Testing](#testing). The `glob`, `grep`, `web_fetch`, `web_search`, and `mcp` rows, Codex `reasoning`, and Codex `imageView` have no recorded scenario yet, and the Codex read-back does not always reproduce the live order of tool items that start in the same millisecond ([design 002](002-testing.md#open-questions)).
 
 ## Why
 
@@ -246,6 +246,8 @@ type ToolResult struct {
 }
 ```
 
+`ID` is derived from the harness's own identifiers, so it is stable: a message has the same `ID` when read live and when read back from the harness home after the turn. Consumers can use it to deduplicate and to join live and read-back data.
+
 `ToolCall` is emitted when the harness issues the call and `ToolResult` when it completes, correlated by `CallID`. Merging the two into one row is a consumer concern.
 
 ### Tools
@@ -342,6 +344,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - `Terminate`, context cancellation, and `Close` stop a turn through the same path and differ only in the error `Result` returns.
 - No harness process outlives `Close`.
 - No tool process started by a turn outlives that turn's stop.
+- A message has the same `Message.ID` when read live and when read back from the harness home after the turn.
 - Each harness is supported at exactly its pinned version; recorded fixtures and the committed Codex schema come from that version.
 - Harnesses never wait on a permission prompt.
 
@@ -362,4 +365,4 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - **Lifecycle tests.** A fake harness process drives every transition in the turn lifecycle: start failure, completion, `Terminate`, context cancellation, `Close` during a turn, process crash, `ErrTurnInProgress`, and `ErrClosed`; no fake process survives `Close`.
 - **Replay tests.** Concurrent `Messages()` consumers during a turn see identical sequences, and the same sequence, apart from the [listed differences](#live-and-read-back-differences), is read back from the harness home after the turn.
 - **Index tests.** `~/.cloudagent` entries are written for every turn and never contain message content.
-- **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`. They fail, rather than skip, when an installed CLI's version differs from its pin.
+- **Harness tests.** End-to-end runs against the real Claude Code and Codex CLIs, enabled by `CLOUDAGENT_E2E=1`: every scenario, continuity, `Terminate` during a running command (no process survives the stop, and the next turn continues the conversation), `Close`, and a read-back of every turn that must match the live messages, IDs included. They fail, rather than skip, when an installed CLI's version differs from its pin.

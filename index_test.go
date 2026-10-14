@@ -29,53 +29,59 @@ func TestIndexHasNoContent(t *testing.T) {
 					t.Fatalf("Close: %v", err)
 				}
 				requireIndexFields(t, e, run)
-
-				// Paths and status words the index legitimately records.
-				allowed := map[string]bool{e.work: true, e.harnessHome: true, e.home: true}
-				for _, status := range []string{"running", "completed", "terminated", "cancelled", "closed", "failed"} {
-					allowed[status] = true
-				}
-				var content []string
-				add := func(s string) {
-					if len(s) >= minContentLen && !allowed[s] {
-						content = append(content, s)
-					}
-				}
-				for _, p := range e.rec.Meta.Prompts {
-					add(p)
-				}
-				for _, msgs := range run.live {
-					for _, m := range msgs {
-						for _, s := range messageContent(t, m) {
-							add(s)
-						}
-					}
-				}
-				if len(content) == 0 {
-					t.Fatal("the run produced no content to look for")
-				}
-
-				root := filepath.Join(e.home, ".cloudagent")
-				err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-					if err != nil || d.IsDir() {
-						return err
-					}
-					data, err := os.ReadFile(path)
-					if err != nil {
-						return err
-					}
-					for _, s := range content {
-						if strings.Contains(string(data), s) || strings.Contains(string(data), jsonEscaped(s)) {
-							t.Errorf("%s contains message content %q", path, s)
-						}
-					}
-					return nil
-				})
-				if err != nil {
-					t.Fatal(err)
-				}
+				requireNoIndexContent(t, e, e.rec.Meta.Prompts, run.live)
 			})
 		}
+	}
+}
+
+// requireNoIndexContent checks that no file under the isolated ~/.cloudagent
+// contains a prompt or any message text, tool input, or tool output of live.
+func requireNoIndexContent(t *testing.T, e *replayEnv, prompts []string, live [][]cloudagent.Message) {
+	t.Helper()
+	// Paths and status words the index legitimately records.
+	allowed := map[string]bool{e.work: true, e.harnessHome: true, e.home: true}
+	for _, status := range []string{"running", "completed", "terminated", "cancelled", "closed", "failed"} {
+		allowed[status] = true
+	}
+	var content []string
+	add := func(s string) {
+		if len(s) >= minContentLen && !allowed[s] {
+			content = append(content, s)
+		}
+	}
+	for _, p := range prompts {
+		add(p)
+	}
+	for _, msgs := range live {
+		for _, m := range msgs {
+			for _, s := range messageContent(t, m) {
+				add(s)
+			}
+		}
+	}
+	if len(content) == 0 {
+		t.Fatal("the run produced no content to look for")
+	}
+
+	root := filepath.Join(e.home, ".cloudagent")
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, s := range content {
+			if strings.Contains(string(data), s) || strings.Contains(string(data), jsonEscaped(s)) {
+				t.Errorf("%s contains message content %q", path, s)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

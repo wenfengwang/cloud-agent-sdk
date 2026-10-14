@@ -122,6 +122,10 @@ func TestReadBackThroughAPI(t *testing.T) {
 					}
 					back, n := withoutUnstreamed(t, h, back, run.live[i])
 					extra += n
+					// Message IDs are stable between live and read-back.
+					if got, want := messageIDs(back), messageIDs(run.live[i]); !slices.Equal(got, want) {
+						t.Errorf("turn %d: read-back message IDs %v, want the live IDs %v", i+1, got, want)
+					}
 					if got, want := comparable(t, back), comparable(t, run.live[i]); got != want {
 						t.Errorf("turn %d: read back\n%s\nwant\n%s", i+1, got, want)
 					}

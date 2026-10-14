@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. `scripts/install-harnesses.sh`, `internal/testenv`, the fake harness, the recorded fixtures, and test layers 1 to 3 are implemented. The real CLI tests (layer 4) are not built yet. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
+Partial. `scripts/install-harnesses.sh`, `internal/testenv`, the fake harness, the recorded fixtures, and all four test layers are implemented. The mapping rows listed in [Open Questions](#open-questions) have no scenario yet. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
 
 ## Why
 
@@ -109,8 +109,8 @@ The fake records its process ID and every line it receives in a state directory 
 | Check | Where | How |
 |---|---|---|
 | Concurrent consumers | Module root, fake | Several goroutines call `Messages()` at different points of a paced replay; all see the same sequence from the first message |
-| Read-back equals live | Adapter package, fixtures | The fixture's `home/` tree is copied into a temporary harness home; reading the turn back yields the golden messages, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
-| Read-back through the API | Module root, fake | The fixture's transcripts reach the harness home (Claude: the fake writes them when its traffic ends; Codex: copied before the first turn, since Codex writes the rollout while the turn runs); `Messages()` after the turn ends yields the same sequence as during it, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
+| Read-back equals live | Adapter package, fixtures | The fixture's `home/` tree is copied into a temporary harness home; reading the turn back yields the golden messages, with the same IDs, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
+| Read-back through the API | Module root, fake | The fixture's transcripts reach the harness home (Claude: the fake writes them when its traffic ends; Codex: copied before the first turn, since Codex writes the rollout while the turn runs); `Messages()` after the turn ends yields the same sequence, with the same IDs, as during it, except for the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
 | Index has no content | Module root, fake and real CLI | After the turns, no file under `$HOME/.cloudagent` contains the prompt or any message text, tool input, or tool output of the run; `agent.json` and `turns.jsonl` hold exactly the fields of design 001 |
 
 ### 4. Real CLI tests
@@ -120,6 +120,16 @@ Live at the module root and run only when `CLOUDAGENT_E2E=1`. Each test:
 1. Puts `.tools/node_modules/.bin` first on `PATH` and fails if `claude --version` or `codex --version` differs from `harness-versions.json` or the CLI is missing.
 2. Prepares the isolated environment and credentials described in [Isolation and Credentials](#isolation-and-credentials), failing if `.harness-local/` is incomplete.
 3. Runs the scenarios through the public API and checks their structural expectations, the read-back, and the index.
+
+| Test | Checks |
+|---|---|
+| Every scenario | The scenario's expectations from [Scenarios](#scenarios); the result's final text and usage; the index status; the index has no content; every turn read back from the harness home right after it ends matches its live messages, IDs included, apart from the [differences design 001 lists](001-core-api.md#live-and-read-back-differences) |
+| `terminate` | `Result` returns `ErrTerminated`; no process the test observed, including the turn's `sleep 30`, is alive after the stop; the read-back right after the stop matches the live messages; a follow-up turn completes on the same conversation |
+| `two-turn` | The second turn's final text names the word from the first |
+| `Close` during `sleep 30` | `Result` returns `ErrClosed`; no observed process is alive; `Turn` fails with `ErrClosed`; the closed turn can still be read back |
+| Version mismatch | The pinned-CLI check fails for a `claude` or `codex` whose `--version` differs from its pin |
+
+Every real CLI test samples the test process's descendants while it runs and fails if any of them is alive after `Close`.
 
 ## Fixtures
 
@@ -159,7 +169,7 @@ CLOUDAGENT_RECORD=1 go test ./internal/claude ./internal/codex -run TestRecord
 
 For each scenario, the recording test seeds a temporary working directory, drives the pinned CLI through the adapter's own process and protocol code with a traffic tap attached, performs the scenario's actions (further prompts, the terminate request), copies the harness home's transcript files, scrubs everything, and writes the fixture. The tap is internal to the adapter package; it is not part of the public API.
 
-Codex offers the model `apply_patch`, but the model edits files with shell commands unless told otherwise. Codex recording therefore sends a test-only configuration override with `thread/start`, developer instructions that ask for `apply_patch`, so the `write-file` and `edit-file` scenarios produce `fileChange` items and the `file_patch` row gets a real fixture. Real CLI tests set the same override; production runs do not.
+Codex offers the model `apply_patch`, but the model edits files with shell commands unless told otherwise. Codex recording therefore sends a test-only configuration override with `thread/start`, developer instructions that ask for `apply_patch`, so the `write-file` and `edit-file` scenarios produce `fileChange` items and the `file_patch` row gets a real fixture. Real CLI tests run through the public API, which has no override hook, so they apply the same instructions by writing `developer_instructions` into the `config.toml` of the temporary `CODEX_HOME`. Production runs do neither.
 
 Scrubbing replaces with `REDACTED` every credential value loaded from `.harness-local/`, bearer tokens, authorization headers, and anything matching an API key pattern, then replaces paths with the placeholders above. The recording fails, writing nothing, if any loaded credential value is still present afterwards.
 
@@ -217,6 +227,7 @@ This design is verified by the tests it defines: the fixture version check enfor
 ## Open Questions
 
 - **Rows without a scenario.** `web_fetch`, `web_search`, and `mcp` have no scenario on either harness, `glob` and `grep` have none on Claude Code, and Codex `imageView` has none, so their mapping rows are not covered by fixtures.
+- **Codex parallel tool order.** When the model runs tool calls in parallel, Codex can report their items with identical millisecond start and completion times, and the rollout records only those times and the completion order. The live start order of such items cannot be recovered, so a read-back can order their calls and results differently from the live turn (same messages and IDs). Real CLI runs of `glob-grep` hit this intermittently.
 - **Codex reasoning.** The local provider's model catalog does not support reasoning summaries, so the `summary: "auto"` of `turn/start` has no effect and no Codex fixture has a `reasoning` item. Covering the row needs a provider that returns summaries.
 
 ## References

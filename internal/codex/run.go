@@ -62,11 +62,12 @@ type run struct {
 	turn   string
 	ref    harness.Ref
 
-	msgs      chan message.Message
-	interrupt sync.Once
-	done      chan struct{}
-	outcome   harness.Outcome
-	err       error
+	msgs        chan message.Message
+	interrupt   sync.Once
+	interrupted chan struct{} // closed by the first Interrupt
+	done        chan struct{}
+	outcome     harness.Outcome
+	err         error
 }
 
 var _ harness.Run = (*run)(nil)
@@ -74,13 +75,14 @@ var _ harness.Run = (*run)(nil)
 func newRun(h *Harness, srv *appServer, thread, turn string) *run {
 	data, _ := json.Marshal(map[string]string{"thread_id": thread, "turn_id": turn})
 	r := &run{
-		h:      h,
-		srv:    srv,
-		thread: thread,
-		turn:   turn,
-		ref:    harness.Ref{SessionID: thread, Data: data},
-		msgs:   make(chan message.Message, 64),
-		done:   make(chan struct{}),
+		h:           h,
+		srv:         srv,
+		thread:      thread,
+		turn:        turn,
+		ref:         harness.Ref{SessionID: thread, Data: data},
+		msgs:        make(chan message.Message, 64),
+		interrupted: make(chan struct{}),
+		done:        make(chan struct{}),
 	}
 	go r.loop()
 	return r
@@ -90,8 +92,11 @@ func (r *run) Ref() harness.Ref                 { return r.ref }
 func (r *run) Messages() <-chan message.Message { return r.msgs }
 
 // Interrupt sends turn/interrupt once, without waiting for its response.
+// Once the interrupted turn has ended, the run shuts the app-server down
+// before it ends (see loop).
 func (r *run) Interrupt() {
 	r.interrupt.Do(func() {
+		close(r.interrupted)
 		go func() {
 			_, _ = r.srv.request(context.Background(), "turn/interrupt", map[string]string{"threadId": r.thread, "turnId": r.turn})
 		}()
@@ -128,8 +133,23 @@ func (r *run) loop() {
 			r.outcome.Usage = st.usage
 			r.err = st.err
 			r.h.markEnded(r.turn)
+			r.shutdownIfStopped()
 			return
 		}
+	}
+}
+
+// shutdownIfStopped shuts the app-server down after an interrupted turn
+// (design 001, "Graceful stop"). Codex leaves the turn's running commands
+// alive after turn/interrupt and ends them only when the app-server shuts
+// down, which also flushes the rollout; so the run ends only once the
+// process is gone. The next StartTurn starts a new app-server that resumes
+// the thread.
+func (r *run) shutdownIfStopped() {
+	select {
+	case <-r.interrupted:
+		r.srv.close()
+	default:
 	}
 }
 

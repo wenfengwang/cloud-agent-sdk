@@ -311,7 +311,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 | Turn accepted | The CLI echoed the prompt back as a user message; the echo supplies `user_message_uuid` | `turn/start` returned |
 | Reasoning | `thinking` blocks as the harness emits them | `turn/start` requests reasoning summaries with `summary: "auto"` |
 | Permissions | `--permission-mode bypassPermissions` | approval policy `never`, sandbox `danger-full-access` |
-| Graceful stop | `interrupt` control request; the process is killed after the grace period | `turn/interrupt`; the `app-server` process is killed after the grace period, and the next turn starts a new one on the same thread |
+| Graceful stop | `interrupt` control request; the process is killed after the grace period | `turn/interrupt`; once the turn has ended, the `app-server` is shut down (stdin closed, its process group killed if it has not exited within the grace period), because Codex keeps the turn's running commands alive until it shuts down. If the turn has not ended within the grace period, the `app-server` is killed. The next turn starts a new `app-server` and continues the thread with `thread/resume` |
 | Close | No process outlives a turn | `app-server` process stopped |
 | Harness home | `CLAUDE_CONFIG_DIR` | `CODEX_HOME` |
 | Transcript | `<home>/projects/<encoded-workdir>/<session-id>.jsonl` | `<home>/sessions/<yyyy>/<mm>/<dd>/rollout-*-<thread-id>.jsonl` |
@@ -341,6 +341,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - `Messages()` always starts from the turn's first message, during and after the turn.
 - `Terminate`, context cancellation, and `Close` stop a turn through the same path and differ only in the error `Result` returns.
 - No harness process outlives `Close`.
+- No tool process started by a turn outlives that turn's stop.
 - Each harness is supported at exactly its pinned version; recorded fixtures and the committed Codex schema come from that version.
 - Harnesses never wait on a permission prompt.
 

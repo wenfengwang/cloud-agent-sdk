@@ -16,9 +16,10 @@ import (
 	"time"
 )
 
-// closeGrace is how long Close waits for the app-server to exit after its
-// stdin is closed before the process group is killed.
-const closeGrace = 3 * time.Second
+// closeGrace is how long a shutdown waits for the app-server to exit after
+// its stdin is closed before the process group is killed: the grace period
+// of design 001.
+const closeGrace = 5 * time.Second
 
 // tapFunc observes every line exchanged with an app-server process: dir is
 // "send" or "recv". The recording tests use it; it is nil otherwise.
@@ -57,7 +58,8 @@ type appServer struct {
 	stdin io.WriteCloser
 	tap   tapFunc
 
-	writeMu sync.Mutex
+	writeMu   sync.Mutex
+	closeOnce sync.Once
 
 	mu      sync.Mutex
 	nextID  int64
@@ -306,13 +308,18 @@ func (s *appServer) kill() {
 
 // close ends the process: it closes stdin, waits up to closeGrace for the
 // process to exit, kills the process group in any case so that no process it
-// started survives, and waits until the process is reaped.
+// started survives, and waits until the process is reaped. It is safe to
+// call more than once and concurrently; every call returns once the process
+// is reaped.
 func (s *appServer) close() {
-	_ = s.stdin.Close()
-	select {
-	case <-s.done:
-	case <-time.After(closeGrace):
-	}
-	_ = syscall.Kill(-s.cmd.Process.Pid, syscall.SIGKILL)
+	s.closeOnce.Do(func() {
+		_ = s.stdin.Close()
+		select {
+		case <-s.done:
+		case <-time.After(closeGrace):
+		}
+		_ = syscall.Kill(-s.cmd.Process.Pid, syscall.SIGKILL)
+		<-s.done
+	})
 	<-s.done
 }

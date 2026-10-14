@@ -261,6 +261,48 @@ func TestInterruptHonored(t *testing.T) {
 	}
 }
 
+// TestInterruptShutsDownAppServer: after an interrupted turn ends, the
+// adapter shuts its app-server down before the run ends (design 001,
+// "Graceful stop"), so no tool process of the turn outlives the stop, and
+// the next turn starts a new app-server that resumes the thread.
+func TestInterruptShutsDownAppServer(t *testing.T) {
+	rec := readFixture(t, filepath.Join("testdata", "terminate"))
+	stopped := fixtureTurns(t, rec)[0]
+	hang := recvLinesThrough(t, "terminate/traffic-1.jsonl", `"command":"/bin/zsh -lc 'sleep 30'"`)
+	e := useFake(t,
+		fakeharness.Invocation{
+			Traffic:   "terminate/traffic-1.jsonl",
+			HangAfter: &fakeharness.Hang{Lines: hang, OnInterrupt: fakeharness.OnInterruptHonor},
+		},
+		fakeharness.Invocation{Traffic: resumeTraffic(t, "text/traffic-1.jsonl")},
+	)
+	r := e.start(t, rec.Meta.Prompts[0])
+	drain(t, r, func(m message.Message) {
+		if m.ToolCall != nil && m.ToolCall.Name == message.ToolNameShell {
+			r.Interrupt()
+		}
+	})
+	if _, err := r.Wait(); err != nil {
+		t.Fatalf("Wait after an honored interrupt: %v", err)
+	}
+	if live := e.state.LivePIDs(t); len(live) != 0 {
+		t.Fatalf("app-server alive after the interrupted turn ended: %v", live)
+	}
+
+	r = e.start(t, "next turn")
+	drain(t, r, nil)
+	if _, err := r.Wait(); err != nil {
+		t.Fatalf("turn after the interrupt: %v", err)
+	}
+	if n := e.state.Invocations(t); n != 2 {
+		t.Fatalf("%d app-server processes, want 2", n)
+	}
+	resume := requests(t, e.state, 2, "thread/resume")
+	if len(resume) != 1 || resume[0]["threadId"] != stopped.thread {
+		t.Errorf("thread/resume = %v", resume)
+	}
+}
+
 // resumeTraffic derives the traffic of a process that resumes a thread from
 // a recorded first process: the app-server answers thread/resume with the
 // thread object it returns for thread/start.

@@ -1,6 +1,6 @@
 [
   {
-    "ID": "01a13c3e-4ae2-7ff2-914d-1e9e39ecdd4a",
+    "ID": "01a13c6f-fb8a-7cd1-9c43-38142357d6f3",
     "Kind": "user",
     "User": {
       "Text": "Run the shell command `sleep 30`, then reply with done."
@@ -10,7 +10,7 @@
       "params": {
         "item": {
           "type": "userMessage",
-          "id": "01a13c3e-4ae2-7ff2-914d-1e9e39ecdd4a",
+          "id": "01a13c6f-fb8a-7cd1-9c43-38142357d6f3",
           "clientId": null,
           "content": [
             {
@@ -20,43 +20,43 @@
             }
           ]
         },
-        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
-        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
-        "completedAtMs": 1792012077794
+        "threadId": "01a13c6f-f0a2-7681-837d-5635c5935d15",
+        "turnId": "01a13c6f-fb6a-78b1-b558-58a3933ee050",
+        "completedAtMs": 1792015334283
       },
-      "emittedAtMs": 1792012077796
+      "emittedAtMs": 1792015334285
     }
   },
   {
-    "ID": "msg_0740fa804bafad60016acfef3016448198b401e9aaa0fba2aa",
+    "ID": "msg_049b0950638d7258016acffbe80ec4819a9909f45f9aa08ad7",
     "Kind": "assistant",
     "Assistant": {
-      "Text": "I’ll run `sleep 30`, then reply with done."
+      "Text": "I’ll run `sleep 30`, then reply when it finishes.\n"
     },
     "Raw": {
       "method": "item/completed",
       "params": {
         "item": {
           "type": "agentMessage",
-          "id": "msg_0740fa804bafad60016acfef3016448198b401e9aaa0fba2aa",
-          "text": "I’ll run `sleep 30`, then reply with done.",
+          "id": "msg_049b0950638d7258016acffbe80ec4819a9909f45f9aa08ad7",
+          "text": "I’ll run `sleep 30`, then reply when it finishes.\n",
           "phase": "commentary",
           "memoryCitation": null,
           "delivery": null,
           "questions": null
         },
-        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
-        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
-        "completedAtMs": 1792012080613
+        "threadId": "01a13c6f-f0a2-7681-837d-5635c5935d15",
+        "turnId": "01a13c6f-fb6a-78b1-b558-58a3933ee050",
+        "completedAtMs": 1792015336529
       },
-      "emittedAtMs": 1792012080614
+      "emittedAtMs": 1792015336531
     }
   },
   {
-    "ID": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+    "ID": "exec-203bcce6-457c-4ea8-8f09-a96d96025c74",
     "Kind": "tool_call",
     "ToolCall": {
-      "ID": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+      "ID": "exec-203bcce6-457c-4ea8-8f09-a96d96025c74",
       "RawName": "commandExecution",
       "Name": "shell",
       "InputType": "*message.ShellInput",
@@ -71,12 +71,12 @@
       "params": {
         "item": {
           "type": "commandExecution",
-          "id": "exec-6602e7f0-fd1a-4e86-a97f-fd61b4dde4d8",
+          "id": "exec-203bcce6-457c-4ea8-8f09-a96d96025c74",
           "pluginId": null,
           "scriptPath": null,
           "command": "/bin/zsh -lc 'sleep 30'",
           "cwd": "@WORKDIR@",
-          "processId": "54743",
+          "processId": "51733",
           "source": "unifiedExecStartup",
           "status": "inProgress",
           "commandActions": [
@@ -89,11 +89,11 @@
           "exitCode": null,
           "durationMs": null
         },
-        "threadId": "01a13c3e-3f5e-7930-8f8e-772af8e84b0b",
-        "turnId": "01a13c3e-4ad5-77d1-aa20-a71ed0f28dfa",
-        "startedAtMs": 1792012081427
+        "threadId": "01a13c6f-f0a2-7681-837d-5635c5935d15",
+        "turnId": "01a13c6f-fb6a-78b1-b558-58a3933ee050",
+        "startedAtMs": 1792015337322
       },
-      "emittedAtMs": 1792012081428
+      "emittedAtMs": 1792015337329
     }
   }
 ]

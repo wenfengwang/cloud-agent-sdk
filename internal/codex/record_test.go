@@ -88,17 +88,12 @@ func recordScenario(t *testing.T, s testenv.Scenario) {
 		if s.TerminateWhen != nil && !stopped {
 			t.Fatalf("turn %d: the terminate condition never held", i+1)
 		}
-		// Read back while the app-server still runs, as the agent does: the
-		// rollout must already hold the turn.
+		// Read back right after the turn, as the agent does: the rollout
+		// must already hold the turn, including a tool call still running
+		// at a stop.
 		back, err := h.ReadTurn(context.Background(), r.Ref())
 		if err != nil {
 			t.Fatalf("turn %d: ReadTurn: %v", i+1, err)
-		}
-		if stopped {
-			// A tool call still running at the stop is persisted only once
-			// Codex records its completion, which can follow the read.
-			live = withoutUnfinishedCalls(live)
-			back = withoutUnfinishedCalls(back)
 		}
 		if !reflect.DeepEqual(withoutRaw(back), withoutRaw(live)) {
 			t.Fatalf("turn %d read back as\n%s\nlive\n%s\n%s", i+1, kinds(back), kinds(live), firstDifference(withoutRaw(back), withoutRaw(live)))
@@ -137,12 +132,11 @@ func recordScenario(t *testing.T, s testenv.Scenario) {
 	}
 }
 
-// recordConfig is the test-only configuration override of design 002. The
-// pinned Codex offers the apply_patch tool, but the model writes and edits
-// files with shell commands unless told otherwise; these developer
-// instructions make file writes and edits arrive as fileChange items.
+// recordConfig is the test-only configuration override of design 002: the
+// developer instructions that make file writes and edits arrive as
+// fileChange items.
 var recordConfig = map[string]any{
-	"developer_instructions": "Create and edit files with the apply_patch tool, not with shell commands.",
+	"developer_instructions": testenv.CodexApplyPatchInstructions,
 }
 
 // recordScrubber scrubs credentials and replaces paths and the host name.
@@ -193,24 +187,6 @@ func kinds(msgs []message.Message) string {
 		parts = append(parts, p)
 	}
 	return strings.Join(parts, " ")
-}
-
-// withoutUnfinishedCalls drops tool calls that have no result.
-func withoutUnfinishedCalls(msgs []message.Message) []message.Message {
-	done := map[string]bool{}
-	for _, m := range msgs {
-		if m.ToolResult != nil {
-			done[m.ToolResult.CallID] = true
-		}
-	}
-	var out []message.Message
-	for _, m := range msgs {
-		if m.ToolCall != nil && !done[m.ToolCall.ID] {
-			continue
-		}
-		out = append(out, m)
-	}
-	return out
 }
 
 // firstDifference describes the first message that differs, as JSON.

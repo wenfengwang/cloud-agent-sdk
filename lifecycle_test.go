@@ -155,9 +155,12 @@ func TestStop(t *testing.T) {
 					if err := <-closed; err != nil {
 						t.Fatalf("Close: %v", err)
 					}
-					if pids := e.state.LivePIDs(t); len(pids) != 0 {
-						t.Errorf("harness processes alive after Close: %v", pids)
-					}
+				}
+				// No process of the turn outlives its stop: Claude Code runs
+				// one process per turn, and Codex shuts its app-server down
+				// after a stopped turn.
+				if pids := e.state.LivePIDs(t); len(pids) != 0 {
+					t.Errorf("harness processes alive after the stop: %v", pids)
 				}
 				if got := messageIDs(msgs); !slices.Equal(got, goldenIDs(want)) {
 					t.Errorf("message IDs %v, want %v", got, goldenIDs(want))

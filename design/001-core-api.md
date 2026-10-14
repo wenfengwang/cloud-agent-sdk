@@ -16,9 +16,11 @@ Draft. Nothing is implemented. This document defines the first public surface of
 
 ## Why
 
-Claude Code and Codex are each scriptable, but through unrelated contracts. Claude Code speaks newline-delimited stream-json with a bidirectional control protocol. Codex speaks JSON-RPC through `codex app-server`. They name the same actions differently (`Bash` versus `commandExecution`, `Edit` versus `fileChange`), shape tool inputs differently, and store transcripts in different layouts. A program that wants to drive either harness has to learn both, and every consumer ends up re-normalizing harness output on its own, usually incompletely.
+cloudagent runs Claude Code and Codex in a cloud VM for a system that drives them from outside. The [README](../README.md#why) gives the two reasons the official SDKs do not serve that system: their programmatic surface is thin, and agent state is exposed only in the live stream or in harness-private files.
 
-The root problem is the missing abstraction, not a missing feature. Callers need one object model for an agent, a turn, and the messages a turn produces, normalized once at the source, so that code written against one harness runs unchanged against the other.
+Both reasons come from one missing abstraction. Each harness offers a contract shaped like its CLI: Claude Code speaks newline-delimited stream-json with a bidirectional control protocol, Codex speaks JSON-RPC through `codex app-server`. They name the same actions differently (`Bash` versus `commandExecution`, `Edit` versus `fileChange`), shape tool inputs differently, and store transcripts in different layouts. Every consumer re-normalizes this on its own, usually incompletely, and anything it did not capture from the stream has to be dug out of the transcript files later.
+
+Callers need one object model for an agent, a turn, and the messages a turn produces. It is normalized once at the source, so code written against one harness runs unchanged against the other, and it reads the same while a turn runs and after it ends, so no state is reachable only through the live stream or only through a harness's files.
 
 ## Summary
 
@@ -330,7 +332,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 - **Permission and sandbox control.** Harnesses always run in bypass mode; restricting them needs its own design, together with hooks to answer approvals.
 - **Rollback, fork, and steering.** Conversation history editing and injecting input into a running turn need their own design.
 - **Resuming a previous agent.** An `AgentRuntime` cannot be reopened from its ID yet, although the index is written so that it can be added.
-- **Remote or sandboxed execution.** Harnesses run as local processes.
+- **Remote access and VM provisioning.** cloudagent runs inside the VM, next to the harness, and starts it as a local process. Exposing the API across the network and provisioning or sandboxing the VM need their own design.
 - **Workspace rollback.** Files an agent changes are never reverted by cloudagent.
 
 ## Testing

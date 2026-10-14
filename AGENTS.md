@@ -1,6 +1,6 @@
 # AGENTS.md
 
-cloud-agent-sdk gives Claude Code and Codex one programmable Go API. The only public package is the module root, `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk`); everything else lives under `internal/`.
+cloud-agent-sdk is a toolkit for running complete, programmable, controllable Claude Code and Codex instances in the cloud; see [README.md](README.md) for why. Its entry point is a Go API. The only public package is the module root, `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk`); everything else lives under `internal/`.
 
 Read the nearest `AGENTS.md` for every directory you touch.
 

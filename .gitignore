@@ -1,0 +1,3 @@
+# Local harness credentials and pinned harness binaries. Never commit.
+.harness-local/
+.tools/

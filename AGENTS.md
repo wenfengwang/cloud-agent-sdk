@@ -17,6 +17,7 @@ Read the nearest `AGENTS.md` for every directory you touch.
 - **Public API through design.** The exported surface of package `cloudagent` changes only together with its owning design.
 - **Tests first.** New behavior ships with tests; bug fixes ship with a regression test. Run `go test ./...` before finishing.
 - **Go conventions.** Format with `gofmt`; wrap propagated errors with context.
+- **Harness credentials.** Local credentials live only in the git-ignored `.harness-local/` and are passed only to the pinned Claude Code and Codex CLIs. Never call a model API directly, and never commit, log, or print a credential.
 - **Commits.** Conventional Commits (`type(scope): message`), one coherent change per commit that keeps the tree buildable.
 
 ## Editing These Instructions

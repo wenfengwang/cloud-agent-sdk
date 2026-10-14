@@ -2,7 +2,7 @@
 title: "Testing"
 description: "How cloudagent is verified: four test layers (translation, lifecycle, replay and read-back, real CLI) driven by fixtures recorded from the pinned harness CLIs, fake harness executables injected through PATH, and fully isolated harness homes."
 number: "002"
-status: draft
+status: partial
 supersedes: ""
 related: ["001"]
 last_verified: "2026-10-14"
@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Draft. Nothing is implemented. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
+Partial. `scripts/install-harnesses.sh`, `internal/testenv`, and the fake harness are implemented. No fixture is recorded yet, so the translation, read-back, and fixture-driven lifecycle and replay tests do not exist. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
 
 ## Why
 
@@ -96,7 +96,7 @@ Live at the module root and use only the exported API. `TestMain` builds the fak
 | Context cancellation | Replay `terminate`, cancel `ctx` | `Result` returns `ctx.Err()`; status `cancelled` |
 | `Close` during a turn | Replay `terminate`, call `Close` | `Result` returns `ErrClosed`; status `closed`; no fake process alive |
 | Process crash | Script exits non-zero after the first lines | `Result` returns a wrapped harness error; status `failed` |
-| Interrupt ignored | Script hangs and ignores the graceful stop | The turn still ends and the process is gone (see [Open Questions](#open-questions)) |
+| Interrupt ignored | Script hangs and ignores the graceful stop | The turn ends as stopped once the grace period of design 001 has passed, and the process is gone |
 | Single active turn | Script hangs; call `Turn` again | Second call returns `ErrTurnInProgress` |
 | After `Close` | Call `Turn` | Returns `ErrClosed`; ended turns remain readable |
 | Continuity | Replay `two-turn` | Claude's second process is started with `--resume <session-id>`; Codex reuses its thread |
@@ -215,7 +215,6 @@ This design is verified by the tests it defines: the fixture version check enfor
 
 ## Open Questions
 
-- **Escalation after an ignored stop.** Design 001 requires that a stopped turn ends and that no process outlives `Close`, but does not bound how long the graceful stop may take before the process is killed. The interrupt-ignored lifecycle test needs that bound.
 - **Rows without a scenario.** `web_fetch`, `web_search`, `mcp`, and `unknown` have no scenario yet, so their mapping rows are not covered by fixtures.
 - **Codex subagents.** Whether the pinned Codex with the local configuration emits `collabAgentToolCall` for the `subagent` prompt is unverified; if it does not, the Codex `subagent` fixture asserts only that no failure occurs.
 - **Read-back differences.** The fields that may differ between live and read-back messages are owned by [design 001](001-core-api.md#open-questions); the read-back tests compare everything else.

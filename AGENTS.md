@@ -9,6 +9,8 @@ Read the nearest `AGENTS.md` for every directory you touch.
 | Need | Start here |
 |---|---|
 | Architecture, behavior, and rationale | [design/AGENTS.md](design/AGENTS.md) |
+| A runnable example of the public API | [examples/quickstart](examples/quickstart/main.go) |
+| The web demo sub-project | [demo/AGENTS.md](demo/AGENTS.md) |
 
 ## Rules
 

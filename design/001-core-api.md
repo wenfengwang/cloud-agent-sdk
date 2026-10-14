@@ -55,7 +55,7 @@ stateDiagram-v2
 ```
 
 ```go
-import cloudagent "github.com/wenfengwang/cloud-agent-sdk"
+import cloudagent "github.com/wenfengwang/cloud-agent-sdk/go"
 
 agent, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "."})
 if err != nil {
@@ -86,19 +86,20 @@ Code layout:
 
 | Path | Owns |
 |---|---|
-| `cloudagent.go` and siblings (package `cloudagent`) | The entire public API: constructors, handles, message and tool types, errors |
-| `internal/message` | The canonical message and tool types; package `cloudagent` re-exports them as aliases |
-| `internal/harness` | The contract between `internal/agent` and the harness adapters |
-| `internal/proc` | Killing a harness process with every descendant, including those in other process groups, at once or after the harness exits |
-| `internal/agent` | Turn lifecycle, the single-active-turn rule, the in-memory message buffer, the `~/.cloudagent` index |
-| `internal/claude` | Claude Code process, stream-json protocol, translation, transcript reading |
-| `internal/codex` | `codex app-server` process, JSON-RPC protocol, translation, rollout reading |
+| `go/` (package `cloudagent`) | The Go SDK: a thin portal that re-exports package `core`; applications import only this package |
+| `core/` (package `core`) | The implementation behind the API: constructors, handles, message and tool types, errors |
+| `core/internal/message` | The canonical message and tool types; package `core` re-exports them as aliases |
+| `core/internal/harness` | The contract between `core/internal/agent` and the harness adapters |
+| `core/internal/proc` | Killing a harness process with every descendant, including those in other process groups, at once or after the harness exits |
+| `core/internal/agent` | Turn lifecycle, the single-active-turn rule, the in-memory message buffer, the `~/.cloudagent` index |
+| `core/internal/claude` | Claude Code process, stream-json protocol, translation, transcript reading |
+| `core/internal/codex` | `codex app-server` process, JSON-RPC protocol, translation, rollout reading |
 
 ## Design Decisions
 
 | Decision | Choice |
 |---|---|
-| Public surface | One package, `cloudagent`, at the module root; all implementation under `internal/` |
+| Public surface | One package, `cloudagent` in `go/`, which re-exports package `core`; all logic lives in `core/` |
 | Harnesses | `cloudagent.ClaudeCode` drives Claude Code; `cloudagent.Codex` drives Codex |
 | Construction | `New` validates options, assigns an agent ID, and writes the index entry; it starts no process and creates no session |
 | Process model | Hidden from callers. Claude Code runs one process per turn; Codex runs one `codex app-server` process per `AgentRuntime`, started by the first turn |
@@ -309,7 +310,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 
 | | Claude Code | Codex |
 |---|---|---|
-| Version | Pinned in [harness-versions.json](../harness-versions.json) | Pinned in [harness-versions.json](../harness-versions.json); protocol committed as [app-server.v2.schema.json](../internal/codex/schema/app-server.v2.schema.json) |
+| Version | Pinned in [harness-versions.json](../harness-versions.json) | Pinned in [harness-versions.json](../harness-versions.json); protocol committed as [app-server.v2.schema.json](../core/internal/codex/schema/app-server.v2.schema.json) |
 | Process | One per turn: `claude --print --output-format stream-json --input-format stream-json --verbose --replay-user-messages`, with `--session-id <session-id>` on the first turn (the adapter generates the ID) and `--resume <session-id>` once the session's transcript exists | One `codex app-server` per `AgentRuntime`; `initialize`, then `thread/start` on the first turn or `thread/resume` when a new process continues the thread, then `turn/start` per turn |
 | Client identity | — | `initialize` sends `clientInfo` with name `codex_cli_rs`, the pinned CLI's default originator, and title `cloudagent` |
 | Turn accepted | The CLI echoed the prompt back as a user message; the echo supplies `user_message_uuid` | `turn/start` returned |
@@ -338,7 +339,7 @@ Codex reports configuration warnings (for example, "Codex is ignoring 3 unrecogn
 ## Invariants
 
 - The harness home is the only store of conversation data. `~/.cloudagent` holds IDs, references, and status, never message content.
-- Package `cloudagent` is the only public package; nothing under `internal/` is part of the API.
+- Package `cloudagent` (`go/`) is the only package applications import. It contains no logic: every exported identifier re-exports package `core`, and a test fails when the two diverge.
 - At most one turn is active per `AgentRuntime`.
 - `Turn` reports start failures synchronously; every failure after it returns is reported by `Result`.
 - Messages are complete and typed. Harness differences are normalized in the adapter; no harness-specific tool name or input shape appears outside `RawName` and `Raw`.

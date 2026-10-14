@@ -115,7 +115,7 @@ The SDK lets any number of readers range `Messages()` concurrently, and replays 
 
 `demo/go.mod` declares `module github.com/wenfengwang/cloud-agent-sdk/demo`, `go 1.24` or later (the SDK uses package `iter`), `require github.com/wenfengwang/cloud-agent-sdk v0.0.0`, and `replace github.com/wenfengwang/cloud-agent-sdk => ../`. gin and other demo dependencies live only here. There is no `go.work` at the repository root.
 
-Because the module path is under the SDK's path, the Go toolchain would accept imports of the SDK's `internal/` packages. A test in the demo fails if any package in `go list -deps ./...` has the prefix `github.com/wenfengwang/cloud-agent-sdk/internal/`.
+The backend imports the Go SDK, package `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk/go`). Because the module path is under the SDK's path, the Go toolchain would also accept direct imports of `core` and its `internal/` packages. A test in the demo fails if any demo package imports a package with the prefix `github.com/wenfengwang/cloud-agent-sdk/core`.
 
 ## Directory Layout
 
@@ -395,7 +395,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 
 ## Invariants
 
-- The backend imports only the root `cloudagent` package, and only `internal/sdk` imports it.
+- The backend imports only the Go SDK package `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk/go`), and only `internal/sdk` imports it.
 - The demo writes no conversation data to disk. Everything it keeps (sessions, prompts, titles, timestamps, turn records) is in memory and derived from requests or SDK calls.
 - No turn runs on a request context; a turn's context is cancelled only by stop, delete, or shutdown while the turn is starting, or after its `Result` returns.
 - `turn.Messages()` is ranged once per turn, by its recorder; every reader is served from the record.
@@ -421,7 +421,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 - **Event tests** cover subscriptions: `afterMessageId` resumption, an unknown `afterMessageId`, two connections receiving identical `receivedAt` values, `stream.error` followed by `turn.ended`, a second tab learning a running turn from `activeTurnId`, and goroutine count returning to its baseline after a client disconnects and one more message is recorded.
 - **Wire tests** convert one SDK message per tool type and kind into its DTO and compare it against golden JSON, including truncation of a string field and preview replacement of an embedded JSON value. They construct SDK values through the public types only.
 - **Git tests** run `internal/gitwork` against temporary repositories: worktree add and remove, rollback after a failed `New`, refusal on dirty worktrees, changes against the start commit including untracked files, and an unchanged index afterwards.
-- **Dependency test** fails if any dependency is under the SDK's `internal/`.
+- **Dependency test** fails if any demo package imports the SDK's `core` or anything under it directly.
 - **Real harness smoke tests** start the backend against the pinned CLIs when `DEMO_E2E=1`, with isolated homes and `--harness-versions` set, and run one prompt per harness through the HTTP API.
 - The demo does not use the SDK's fake harness: its script format is internal to the SDK.
 

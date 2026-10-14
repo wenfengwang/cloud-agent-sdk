@@ -17,7 +17,7 @@ import (
 	"os/signal"
 	"strings"
 
-	cloudagent "github.com/wenfengwang/cloud-agent-sdk"
+	cloudagent "github.com/wenfengwang/cloud-agent-sdk/go"
 )
 
 func main() {

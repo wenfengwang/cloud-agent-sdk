@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Partial. `scripts/install-harnesses.sh`, `internal/testenv`, the fake harness, the recorded fixtures, and all four test layers are implemented. The scenarios for the mapping rows listed in [Open Questions](#open-questions) are not built. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
+Partial. `scripts/install-harnesses.sh`, `core/internal/testenv`, the fake harness, the recorded fixtures, and all four test layers are implemented. The scenarios for the mapping rows listed in [Open Questions](#open-questions) are not built. This document defines how the contract in [design 001](001-core-api.md) is verified: the test layers, the fixture format and how fixtures are recorded, the fake harness executables, and the isolation and credential rules every test follows.
 
 ## Why
 
@@ -49,11 +49,11 @@ Code layout:
 | Path | Owns |
 |---|---|
 | `scripts/install-harnesses.sh` | Installs the pinned CLIs into `.tools/` |
-| `internal/testenv` | Test support shared by all layers: repository root, pinned versions, `.tools` lookup, credential loading, scenario definitions, fixture reading and writing, scrubbing |
-| `internal/fakeharness` | The fake harness: script format and test helpers (build, install on `PATH`, read its recorded state); the executable itself is `internal/fakeharness/cmd/fakeharness` |
-| `internal/claude/testdata/<scenario>/`, `internal/codex/testdata/<scenario>/` | Recorded fixtures and goldens |
-| `internal/claude/*_test.go`, `internal/codex/*_test.go` | Recording, translation, and read-back tests |
-| `*_test.go` at the module root | Lifecycle, replay, index, and real CLI tests through the public API |
+| `core/internal/testenv` | Test support shared by all layers: repository root, pinned versions, `.tools` lookup, credential loading, scenario definitions, fixture reading and writing, scrubbing |
+| `core/internal/fakeharness` | The fake harness: script format and test helpers (build, install on `PATH`, read its recorded state); the executable itself is `core/internal/fakeharness/cmd/fakeharness` |
+| `core/internal/claude/testdata/<scenario>/`, `core/internal/codex/testdata/<scenario>/` | Recorded fixtures and goldens |
+| `core/internal/claude/*_test.go`, `core/internal/codex/*_test.go` | Recording, translation, and read-back tests |
+| `core/*_test.go` | Lifecycle, replay, index, and real CLI tests through the public API |
 
 ## Design Decisions
 
@@ -85,7 +85,7 @@ Each scenario then checks its structural expectations from [Scenarios](#scenario
 
 ### 2. Lifecycle tests
 
-Live at the module root and use only the exported API. `TestMain` builds the fake once into a temporary directory as both `claude` and `codex`, and every lifecycle test makes that directory its whole `PATH`, so no real CLI can be reached.
+Live in `core/` and use only the exported API. `TestMain` builds the fake once into a temporary directory as both `claude` and `codex`, and every lifecycle test makes that directory its whole `PATH`, so no real CLI can be reached.
 
 | Transition or rule | How it is driven | Expected |
 |---|---|---|
@@ -118,7 +118,7 @@ The fake records its process ID and every line it receives in a state directory 
 
 ### 4. Real CLI tests
 
-Live at the module root and run only when `CLOUDAGENT_E2E=1`. Each test:
+Live in `core/` and run only when `CLOUDAGENT_E2E=1`. Each test:
 
 1. Puts `.tools/node_modules/.bin` first on `PATH` and fails if `claude --version` or `codex --version` differs from `harness-versions.json` or the CLI is missing.
 2. Prepares the isolated environment and credentials described in [Isolation and Credentials](#isolation-and-credentials), failing if `.harness-local/` is incomplete.
@@ -141,7 +141,7 @@ Every read-back comparison, offline and real, first puts each run of consecutive
 ### Layout
 
 ```
-internal/<adapter>/testdata/<scenario>/
+core/internal/<adapter>/testdata/<scenario>/
 ├── meta.json             # {harness, version, scenario, prompts}
 ├── traffic-1.jsonl       # one file per harness process, in start order
 ├── traffic-2.jsonl       # (Claude two-turn only: one process per turn)
@@ -169,7 +169,7 @@ Recording tests live in each adapter package and run only when `CLOUDAGENT_RECOR
 
 ```bash
 scripts/install-harnesses.sh
-CLOUDAGENT_RECORD=1 go test ./internal/claude ./internal/codex -run TestRecord
+CLOUDAGENT_RECORD=1 go test ./core/internal/claude ./core/internal/codex -run TestRecord
 ```
 
 For each scenario, the recording test seeds a temporary working directory, drives the pinned CLI through the adapter's own process and protocol code with a traffic tap attached, performs the scenario's actions (further prompts, the terminate request), copies the harness home's transcript files, scrubs everything, and writes the fixture. The tap is internal to the adapter package; it is not part of the public API.
@@ -180,7 +180,7 @@ Scrubbing replaces with `REDACTED` every credential value loaded from `.harness-
 
 ### Scenarios
 
-Each scenario is defined once in `internal/testenv` with harness-neutral prompts and seed files, and recorded for both harnesses. The expectations name the canonical rows of design 001 each fixture must cover. The harnesses expose different tool sets (Codex has no dedicated read or search tools, and the pinned Claude Code's default tool set has no `Glob` or `Grep`), so their expectations differ.
+Each scenario is defined once in `core/internal/testenv` with harness-neutral prompts and seed files, and recorded for both harnesses. The expectations name the canonical rows of design 001 each fixture must cover. The harnesses expose different tool sets (Codex has no dedicated read or search tools, and the pinned Claude Code's default tool set has no `Glob` or `Grep`), so their expectations differ.
 
 | Scenario | Prompt intent | Claude Code must produce | Codex must produce |
 |---|---|---|---|
@@ -238,4 +238,4 @@ This design is verified by the tests it defines: the fixture version check enfor
 
 - [001 — Core API](001-core-api.md): the contract these tests verify.
 - [harness-versions.json](../harness-versions.json): the pinned CLI versions fixtures are recorded from.
-- [internal/codex/AGENTS.md](../internal/codex/AGENTS.md): regenerating the Codex protocol schema on a version bump.
+- [core/internal/codex/AGENTS.md](../core/internal/codex/AGENTS.md): regenerating the Codex protocol schema on a version bump.

@@ -25,7 +25,7 @@ The [root instructions](../AGENTS.md) apply here. This file adds only what is lo
 
 ## Rules
 
-- **Public SDK API only.** Import only the root package `github.com/wenfengwang/cloud-agent-sdk`. Never import anything under the SDK's `internal/`, even though the Go toolchain would allow it from this module path.
+- **Public SDK API only.** Import only the Go SDK, package `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk/go`). Never import `core` or anything under it, even though the Go toolchain would allow it from this module path.
 - **Separate module.** gin and every other demo dependency stay in `demo/go.mod`; the SDK's `go.mod` never changes for the demo. Run `go test ./...` from `demo/`, because the root `go test ./...` does not include a nested module.
 - **SDK gaps stay visible.** A desktop-app feature the SDK cannot support is a disabled control with a reason from the [gap registry](design/001-architecture.md#sdk-gaps), not a workaround. A new gap is added there first.
 - **Frontend tooling.** pnpm only, TypeScript in strict mode, format with prettier, lint with eslint. Run the frontend's tests and lint before finishing.

@@ -50,7 +50,7 @@ This directory has one file:
 ## Example
 
 ```go
-import cloudagent "github.com/wenfengwang/cloud-agent-sdk"
+import cloudagent "github.com/wenfengwang/cloud-agent-sdk/go"
 
 agent, err := cloudagent.New(cloudagent.ClaudeCode, cloudagent.Options{WorkDir: "."})
 if err != nil {

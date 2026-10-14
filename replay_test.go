@@ -145,7 +145,8 @@ func TestReadBackThroughAPI(t *testing.T) {
 
 // withoutUnstreamed drops from back the messages the live turn did not
 // stream, which design 001 allows only for Claude Code's subagent final
-// assistant messages, and reports how many it dropped.
+// assistant message (its text and any thinking), and reports how many it
+// dropped.
 func withoutUnstreamed(t *testing.T, h cloudagent.Harness, back, live []cloudagent.Message) ([]cloudagent.Message, int) {
 	t.Helper()
 	streamed := map[string]bool{}
@@ -158,7 +159,8 @@ func withoutUnstreamed(t *testing.T, h cloudagent.Harness, back, live []cloudage
 			out = append(out, m)
 			continue
 		}
-		if h != cloudagent.Claude || m.Kind != cloudagent.KindAssistant || m.ParentToolUseID == "" {
+		subagentFinal := m.ParentToolUseID != "" && (m.Kind == cloudagent.KindAssistant || m.Kind == cloudagent.KindReasoning)
+		if h != cloudagent.Claude || !subagentFinal {
 			t.Errorf("read back message %s (%s) was not streamed", m.ID, m.Kind)
 		}
 	}

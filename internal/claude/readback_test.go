@@ -137,9 +137,10 @@ func goldenMessages(t *testing.T, dir string) []message.Message {
 }
 
 // withoutUnstreamed drops from back the messages the live stream does not
-// carry. The only such messages are subagent assistant messages: Claude Code
-// persists a subagent's final answer in the subagent transcript but streams it
-// only as the text of the subagent's tool result.
+// carry. The only such messages come from a subagent's final assistant
+// message, its text and any thinking: Claude Code persists that message in
+// the subagent transcript but streams only its text, as the subagent's tool
+// result.
 func withoutUnstreamed(t *testing.T, back, live []message.Message) []message.Message {
 	t.Helper()
 	streamed := map[string]bool{}
@@ -148,7 +149,7 @@ func withoutUnstreamed(t *testing.T, back, live []message.Message) []message.Mes
 	}
 	var out []message.Message
 	for _, m := range back {
-		if !streamed[m.ID] && m.Kind == message.KindAssistant && m.ParentToolUseID != "" {
+		if !streamed[m.ID] && (m.Kind == message.KindAssistant || m.Kind == message.KindReasoning) && m.ParentToolUseID != "" {
 			continue
 		}
 		out = append(out, m)

@@ -301,7 +301,7 @@ A finished turn is read back from the harness home, which does not hold everythi
 | Harness | Difference |
 |---|---|
 | Both | `Raw` holds the harness JSON the message was read from: the stream line or notification live, the transcript entry or rollout item in a read-back |
-| Claude Code | The read-back includes the subagent's final assistant message, with `ParentToolUseID` set, which is never streamed live |
+| Claude Code | The read-back includes the subagent's final assistant message, which is never streamed live: its text as an `assistant` message and any thinking as a `reasoning` message, with `ParentToolUseID` set |
 | Codex | `UnknownInput.Raw` and `UnknownOutput.Raw` hold the rollout's item JSON instead of the app-server item |
 | Codex | Tool calls and results that start or complete in the same millisecond may be read back in a different order (same messages and IDs): the rollout keeps only item completions with millisecond times, so the live order of parallel tool items cannot be recovered. Read-back places such same-millisecond calls before results; every other message keeps the live order. The index does not store message order |
 

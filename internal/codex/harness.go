@@ -115,7 +115,11 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 			ID string `json:"id"`
 		} `json:"turn"`
 	}
-	if err := json.Unmarshal(result, &resp); err != nil || resp.Turn.ID == "" {
+	if err := json.Unmarshal(result, &resp); err != nil {
+		h.dropServer()
+		return nil, fmt.Errorf("codex: decode turn/start response: %w", err)
+	}
+	if resp.Turn.ID == "" {
 		h.dropServer()
 		return nil, fmt.Errorf("codex: turn/start returned no turn id: %s", result)
 	}
@@ -175,7 +179,10 @@ func (h *Harness) loadThread(ctx context.Context) error {
 			ID string `json:"id"`
 		} `json:"thread"`
 	}
-	if err := json.Unmarshal(result, &resp); err != nil || resp.Thread.ID == "" {
+	if err := json.Unmarshal(result, &resp); err != nil {
+		return fmt.Errorf("codex: decode %s response: %w", method, err)
+	}
+	if resp.Thread.ID == "" {
 		return fmt.Errorf("codex: %s returned no thread id", method)
 	}
 	h.thread = resp.Thread.ID
@@ -213,8 +220,11 @@ func (h *Harness) ReadTurn(ctx context.Context, ref harness.Ref) ([]message.Mess
 		ThreadID string `json:"thread_id"`
 		TurnID   string `json:"turn_id"`
 	}
-	if err := json.Unmarshal(ref.Data, &data); err != nil || data.ThreadID == "" || data.TurnID == "" {
-		return nil, fmt.Errorf("codex: invalid turn reference %s", ref.Data)
+	if err := json.Unmarshal(ref.Data, &data); err != nil {
+		return nil, fmt.Errorf("codex: parse turn reference: %w", err)
+	}
+	if data.ThreadID == "" || data.TurnID == "" {
+		return nil, fmt.Errorf("codex: incomplete turn reference %s", ref.Data)
 	}
 	home, err := codexHome(h.cfg.Home)
 	if err != nil {

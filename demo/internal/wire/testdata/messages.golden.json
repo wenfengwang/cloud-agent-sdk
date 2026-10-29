@@ -1,0 +1,366 @@
+[
+  {
+    "id": "msg-user",
+    "turnId": "turn-1",
+    "kind": "user",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "text": "Run the tests",
+    "truncated": false
+  },
+  {
+    "id": "msg-assistant",
+    "turnId": "turn-1",
+    "kind": "assistant",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "text": "All tests pass.",
+    "truncated": false
+  },
+  {
+    "id": "msg-reasoning",
+    "turnId": "turn-1",
+    "kind": "reasoning",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "text": "",
+    "truncated": false
+  },
+  {
+    "id": "msg-call-shell",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-shell",
+      "tool": "shell",
+      "rawName": "Bash",
+      "input": {
+        "type": "shell",
+        "command": "go test ./...",
+        "description": "Run tests",
+        "timeoutMs": 120000
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-shell",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-shell",
+      "tool": "shell",
+      "isError": false,
+      "output": {
+        "type": "shell",
+        "output": "ok",
+        "exitCode": 0
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-shell-noexit",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-shell-noexit",
+      "tool": "shell",
+      "isError": true,
+      "output": {
+        "type": "shell",
+        "output": "killed",
+        "exitCode": null
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-read",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-read",
+      "tool": "file_read",
+      "rawName": "Read",
+      "input": {
+        "type": "fileRead",
+        "path": "/repo/a.go",
+        "offset": 10,
+        "limit": 20
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-read",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-read",
+      "tool": "file_read",
+      "isError": false,
+      "output": {
+        "type": "fileRead",
+        "content": "package a"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-write",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-write",
+      "tool": "file_write",
+      "rawName": "Write",
+      "input": {
+        "type": "fileWrite",
+        "path": "/repo/c.go",
+        "content": "package c"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-edit",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-edit",
+      "tool": "file_edit",
+      "rawName": "Edit",
+      "input": {
+        "type": "fileEdit",
+        "path": "/repo/a.go",
+        "oldString": "a",
+        "newString": "b",
+        "replaceAll": true
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-patch",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-patch",
+      "tool": "file_patch",
+      "rawName": "fileChange",
+      "input": {
+        "type": "filePatch",
+        "changes": [
+          {
+            "path": "/repo/d.go",
+            "kind": "add",
+            "diff": "+package d"
+          }
+        ]
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-glob",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-glob",
+      "tool": "glob",
+      "rawName": "Glob",
+      "input": {
+        "type": "glob",
+        "pattern": "**/*.go",
+        "path": "/repo"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-grep",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-grep",
+      "tool": "grep",
+      "rawName": "Grep",
+      "input": {
+        "type": "grep",
+        "pattern": "func main",
+        "path": "/repo",
+        "glob": "*.go"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-fetch",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-fetch",
+      "tool": "web_fetch",
+      "rawName": "WebFetch",
+      "input": {
+        "type": "webFetch",
+        "url": "https://example.com",
+        "prompt": "Summarize"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-search",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-search",
+      "tool": "web_search",
+      "rawName": "WebSearch",
+      "input": {
+        "type": "webSearch",
+        "query": "go iter"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-mcp",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-mcp",
+      "tool": "mcp",
+      "rawName": "mcp__notes__find",
+      "input": {
+        "type": "mcp",
+        "server": "notes",
+        "tool": "find",
+        "arguments": {
+          "q": "x"
+        }
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-mcp",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-mcp",
+      "tool": "mcp",
+      "isError": false,
+      "output": {
+        "type": "mcp",
+        "content": [
+          {
+            "type": "text",
+            "text": "found"
+          }
+        ]
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-subagent",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-subagent",
+      "tool": "subagent",
+      "rawName": "Task",
+      "input": {
+        "type": "subagent",
+        "description": "Explore",
+        "prompt": "Find main",
+        "subagentType": "explore"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-nested",
+    "turnId": "turn-1",
+    "parentToolUseId": "call-subagent",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-nested",
+      "tool": "file_read",
+      "rawName": "Read",
+      "input": {
+        "type": "fileRead",
+        "path": "/repo/b.go",
+        "offset": 0,
+        "limit": 0
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-subagent",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-subagent",
+      "tool": "subagent",
+      "isError": false,
+      "output": {
+        "type": "text",
+        "text": "main is in b.go"
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-call-unknown",
+    "turnId": "turn-1",
+    "kind": "tool_call",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolCall": {
+      "id": "call-unknown",
+      "tool": "unknown",
+      "rawName": "TodoWrite",
+      "input": {
+        "type": "unknown",
+        "raw": {
+          "todos": []
+        }
+      }
+    },
+    "truncated": false
+  },
+  {
+    "id": "msg-result-call-unknown",
+    "turnId": "turn-1",
+    "kind": "tool_result",
+    "receivedAt": "2026-10-14T09:13:10.004Z",
+    "toolResult": {
+      "callId": "call-unknown",
+      "tool": "unknown",
+      "isError": false,
+      "output": {
+        "type": "unknown",
+        "raw": "done"
+      }
+    },
+    "truncated": false
+  }
+]

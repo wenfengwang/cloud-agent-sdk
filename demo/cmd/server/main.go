@@ -70,7 +70,7 @@ func main() {
 	flag.StringVar(&o.displayName, "display-name", "", "name shown in the UI (default the OS user name)")
 	flag.StringVar(&o.claudeModels, "claude-models", "", "comma-separated Claude Code model suggestions")
 	flag.StringVar(&o.codexModels, "codex-models", "", "comma-separated Codex model suggestions")
-	flag.StringVar(&o.devOrigin, "dev-origin", "http://localhost:5173", "extra allowed origin, such as the Vite dev server")
+	flag.StringVar(&o.devOrigin, "dev-origin", "http://localhost:3000", "extra allowed origin, such as the Next.js dev server")
 	flag.BoolVar(&o.debugRaw, "debug-raw", false, "include each message's raw harness JSON")
 	flag.Parse()
 

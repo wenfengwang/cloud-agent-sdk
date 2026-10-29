@@ -388,9 +388,12 @@ func (h *handler) static(c *gin.Context) {
 		return
 	}
 	file := filepath.Join(h.cfg.WebDir, filepath.FromSlash(filepath.Clean("/"+path)))
-	if info, err := os.Stat(file); err == nil && !info.IsDir() {
-		c.File(file)
-		return
+	// A static export writes each page as <route>/index.html.
+	for _, candidate := range []string{file, filepath.Join(file, "index.html")} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			c.File(candidate)
+			return
+		}
 	}
 	c.File(filepath.Join(h.cfg.WebDir, "index.html"))
 }

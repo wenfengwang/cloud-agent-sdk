@@ -2,7 +2,7 @@
 title: "UI Shells"
 description: "One React frontend with two shells, /claude and /codex, that recreate the layout and interaction of the Claude desktop app (Code mode) and the Codex desktop app on shared session state, one multiplexed SSE connection per tab, a shared composer flow, and shared message and tool renderers themed by per-shell design tokens."
 number: "002"
-status: draft
+status: superseded
 supersedes: ""
 related: ["001"]
 last_verified: "2026-10-14"
@@ -12,7 +12,7 @@ last_verified: "2026-10-14"
 
 ## Status
 
-Draft. Not implemented. The empty (home) state of both shells is specified from reference screenshots; the conversation, tool, running, diff, collapsed-sidebar, and settings views are specified from knowledge of the apps and are unverified until screenshots of those views are available (see [Open Questions](#open-questions)). The backend API this frontend consumes is owned by [design 001](001-architecture.md#api-surface).
+Superseded by [design 003](003-web-app.md), a single Next.js and shadcn/ui app over both harnesses. Never implemented.
 
 ## Why
 

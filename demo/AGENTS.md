@@ -10,7 +10,7 @@ The [root instructions](../AGENTS.md) apply here. This file adds only what is lo
 |---|---|
 | Design rules and numbering for this sub-project | [design/AGENTS.md](design/AGENTS.md) |
 | Backend, HTTP and SSE API, sessions, worktrees, shutdown, the SDK gap registry | [design/001-architecture.md](design/001-architecture.md) |
-| Frontend, the two shells, renderers, visual tokens | [design/002-ui-shells.md](design/002-ui-shells.md) |
+| Frontend: pages, state, renderers, gap controls | [design/003-web-app.md](design/003-web-app.md) |
 | The SDK contract the demo consumes | [../design/001-core-api.md](../design/001-core-api.md) |
 
 ## Layout
@@ -20,7 +20,7 @@ The [root instructions](../AGENTS.md) apply here. This file adds only what is lo
 | `go.mod` | The demo's own Go module; see [Module](design/001-architecture.md#module) |
 | `cmd/server/` | The backend executable: flags, wiring, graceful shutdown |
 | `internal/` | Backend packages (the demo's own, not the SDK's) |
-| `web/` | The frontend: a pnpm, TypeScript, Vite project |
+| `web/` | The frontend: a pnpm, TypeScript, Next.js and shadcn/ui project, statically exported to `web/out/` |
 | `design/` | Demo designs, numbered independently of the root `design/` |
 
 ## Rules

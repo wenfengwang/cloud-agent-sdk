@@ -45,7 +45,7 @@ func newFixture(t *testing.T) *fixture {
 		Store:          f.store,
 		Hub:            f.hub,
 		ProjectRoots:   []string{f.root},
-		AllowedOrigins: []string{"http://localhost:5173"},
+		AllowedOrigins: []string{"http://localhost:3000"},
 		ShuttingDown:   f.shutdown.Load,
 		Info: Info{
 			DisplayName: "Alex Rivera",
@@ -300,7 +300,7 @@ func TestSafetyChecks(t *testing.T) {
 	}{
 		{"foreign host", "GET", func(r *http.Request) { r.Host = "evil.example:8787" }, 403, "forbidden"},
 		{"foreign origin", "GET", func(r *http.Request) { r.Header.Set("Origin", "https://evil.example") }, 403, "forbidden"},
-		{"dev origin", "GET", func(r *http.Request) { r.Header.Set("Origin", "http://localhost:5173") }, 200, ""},
+		{"dev origin", "GET", func(r *http.Request) { r.Header.Set("Origin", "http://localhost:3000") }, 200, ""},
 		{"served origin", "GET", func(r *http.Request) { r.Header.Set("Origin", "http://"+r.Host) }, 200, ""},
 		{"localhost host", "GET", func(r *http.Request) { r.Host = "localhost:8787" }, 200, ""},
 		{"no content type", "POST", func(r *http.Request) { r.Header.Del("Content-Type") }, 415, "unsupported_media_type"},
@@ -432,10 +432,12 @@ func TestStaticFrontend(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(web, "index.html"), []byte("<html>app</html>"), 0o644)
 	_ = os.MkdirAll(filepath.Join(web, "assets"), 0o755)
 	_ = os.WriteFile(filepath.Join(web, "assets", "app.js"), []byte("js"), 0o644)
+	_ = os.MkdirAll(filepath.Join(web, "settings"), 0o755)
+	_ = os.WriteFile(filepath.Join(web, "settings", "index.html"), []byte("<html>settings</html>"), 0o644)
 	store := session.NewStore(session.Config{Factory: &sdkfake.Factory{}})
 	srv := httptest.NewServer(New(Config{Store: store, Hub: events.NewHub(events.Config{Store: store}), WebDir: web, ShuttingDown: func() bool { return false }}))
 	defer srv.Close()
-	for path, want := range map[string]string{"/": "app", "/claude/session/x": "app", "/assets/app.js": "js"} {
+	for path, want := range map[string]string{"/": "app", "/?session=x": "app", "/unknown/route": "app", "/assets/app.js": "js", "/settings/": "settings", "/settings": "settings"} {
 		resp, err := http.Get(srv.URL + path)
 		if err != nil {
 			t.Fatal(err)

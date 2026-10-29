@@ -4,7 +4,7 @@ description: "A localhost-only gin backend that holds one cloudagent AgentRuntim
 number: "001"
 status: current
 supersedes: ""
-related: ["002"]
+related: ["003"]
 last_verified: "2026-10-28"
 ---
 
@@ -12,7 +12,7 @@ last_verified: "2026-10-28"
 
 ## Status
 
-Current. The backend described here is implemented and verified by the tests in [Testing](#testing), including the real harness smoke test. The frontend is owned by [design 002](002-ui-shells.md).
+Current. The backend described here is implemented and verified by the tests in [Testing](#testing), including the real harness smoke test. The frontend is owned by [design 003](003-web-app.md).
 
 ## Why
 
@@ -74,7 +74,7 @@ sequenceDiagram
 
 | Decision | Choice |
 |---|---|
-| Process | One gin server; in development the Vite dev server proxies `/api` to it; otherwise it serves the built frontend from `--web-dir` |
+| Process | One gin server; in development the Next.js dev server proxies `/api` to it; otherwise it serves the statically exported frontend from `--web-dir` |
 | Binding | Loopback only (`127.0.0.1:8787` by default); non-loopback addresses are rejected at startup |
 | Session identity | Session ID is `AgentRuntime.ID()` |
 | Session storage | In memory only; lost on restart |
@@ -129,7 +129,7 @@ The backend imports the Go SDK, package `cloudagent` (`github.com/wenfengwang/cl
 | `internal/wire/` | DTO types and the conversion from `cloudagent.Message` and `cloudagent.Result` |
 | `internal/gitwork/` | `git` calls: repository detection, branches, worktree add and remove, start commit, changed files and diffs |
 | `internal/gaps/` | The gap registry served by `GET /api/config` |
-| `web/` | The frontend; its layout is owned by [design 002](002-ui-shells.md#directory-layout) |
+| `web/` | The frontend; its layout is owned by [design 003](003-web-app.md#directory-layout) |
 
 ## API Surface
 
@@ -260,7 +260,7 @@ That is a `TurnSummary`. `status` is `running`, `completed`, `terminated`, `canc
 }
 ```
 
-That is `Changes`: the working tree, including untracked files, against the commit that was `HEAD` when the session was created. `status` is `added`, `modified`, `deleted`, or `renamed`. Changes are per session, never per turn. A session without a worktree shares its WorkDir with whatever else edits it, so its changes also include edits the user made by hand in that directory since the session started; the review panel says so ([design 002](002-ui-shells.md#other-shared-pieces)).
+That is `Changes`: the working tree, including untracked files, against the commit that was `HEAD` when the session was created. `status` is `added`, `modified`, `deleted`, or `renamed`. Changes are per session, never per turn. A session without a worktree shares its WorkDir with whatever else edits it, so its changes also include edits the user made by hand in that directory since the session started; the changes panel says so ([design 003](003-web-app.md#other-pieces)).
 
 ### Turns
 
@@ -363,7 +363,7 @@ The only git commands that change a repository are `git worktree add`, `git work
 
 ## SDK Gaps
 
-This registry is the one owner of gap IDs and reasons. `GET /api/config` serves it; [design 002](002-ui-shells.md#disabled-gap-affordances) maps IDs to controls. "Visible" means the user sees a disabled control; "Backend" means the demo does the work itself and the gap is recorded for the SDK. Closing a gap is a change to the [root SDK design](../../design/001-core-api.md), not to the demo.
+This registry is the one owner of gap IDs and reasons. `GET /api/config` serves it; [design 003](003-web-app.md#disabled-gap-affordances) maps IDs to controls. "Visible" means the user sees a disabled control; "Backend" means the demo does the work itself and the gap is recorded for the SDK. Closing a gap is a change to the [root SDK design](../../design/001-core-api.md), not to the demo.
 
 | ID | Desktop feature | Reason shown | Surfaces as |
 |---|---|---|---|
@@ -379,7 +379,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 | `cloud` | Cloud environments | The SDK runs harnesses on this machine. | Visible |
 | `search` | Searching sessions | Searching needs an SDK transcript query API. | Visible |
 | `streaming-text` | Typewriter text | Messages arrive complete, without deltas. | Visible: working indicator |
-| `plan` | Plan and task checklists | Plan and task items are not part of the message model. | Visible: Claude Code: unknown tool calls; Codex: not shown, disabled "Plan" row |
+| `plan` | Plan and task checklists | Plan and task items are not part of the message model. | Visible: task tools render as unknown tool cards |
 | `steering` | Queueing, steering, edit and resend, rollback, fork | A turn cannot take input while it runs, and history cannot be edited. | Visible: input hint while a turn runs |
 | `slash-commands` | Slash commands, hooks, custom tools, skills, MCP configuration | Not part of the SDK. | Visible |
 | `chat-mode` | Chat mode | The SDK drives coding harnesses only. | Visible |
@@ -431,4 +431,4 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 
 - [design/001-core-api.md](../../design/001-core-api.md): the SDK contract this backend consumes.
 - [design/002-testing.md](../../design/002-testing.md): how the SDK itself is tested, including credential isolation the demo mirrors.
-- [design 002](002-ui-shells.md): the frontend that consumes this API.
+- [design 003](003-web-app.md): the frontend that consumes this API.

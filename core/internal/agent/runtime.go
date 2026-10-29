@@ -110,7 +110,7 @@ func (r *Runtime) Turn(ctx context.Context, prompt string) (*Turn, error) {
 	ref := run.Ref()
 	if err := r.index.startTurn(t.id, ref.Data, ref.SessionID, startedAt); err != nil {
 		run.Kill()
-		for range run.Messages() {
+		for range run.Events() {
 		}
 		run.Wait()
 		t.abandon()

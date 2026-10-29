@@ -20,7 +20,8 @@ import (
 type recordedTurn struct {
 	thread, turn string
 	status       string // the turn/completed status, empty if none
-	msgs         []message.Message
+	events       []message.Event
+	msgs         []message.Message // the messages of events
 	usage        harness.Usage
 	err          error
 }
@@ -39,13 +40,14 @@ func fixtureTurns(t *testing.T, rec testenv.Recorded) []recordedTurn {
 				if l.Dir != fakeharness.DirRecv {
 					continue
 				}
-				msgs, done := stream.handle(l.Line)
-				recorded.msgs = append(recorded.msgs, msgs...)
+				events, done := stream.handle(l.Line)
+				recorded.events = append(recorded.events, events...)
 				if done {
 					recorded.status = turnStatus(l.Line)
 					break
 				}
 			}
+			recorded.msgs = testenv.MessagesOf(recorded.events)
 			recorded.usage, recorded.err = stream.usage, stream.err
 			out = append(out, recorded)
 		}
@@ -488,4 +490,32 @@ func goldenView(msgs []message.Message) []goldenMessage {
 		out = append(out, g)
 	}
 	return out
+}
+
+// TestDeltas checks the delta rules of design 001 over every fixture. Every
+// recorded Codex fixture streams its agent messages.
+func TestDeltas(t *testing.T) {
+	for _, dir := range fixtureDirs(t) {
+		t.Run(filepath.Base(dir), func(t *testing.T) {
+			for i, recorded := range fixtureTurns(t, readFixture(t, dir)) {
+				for _, p := range testenv.DeltaProblems(recorded.events) {
+					t.Errorf("turn %d: %s", i+1, p)
+				}
+				var assistant int
+				for _, m := range recorded.msgs {
+					if m.Kind == message.KindAssistant && m.ParentToolUseID == "" {
+						assistant++
+					}
+				}
+				if assistant > 0 && testenv.StreamCount(recorded.events) == 0 {
+					t.Errorf("turn %d: %d assistant messages, none streamed", i+1, assistant)
+				}
+				for _, e := range recorded.events {
+					if e.Message != nil && e.StreamID != "" && e.StreamID != e.Message.ID {
+						t.Errorf("turn %d: message %s completes stream %s; Codex streams by item ID", i+1, e.Message.ID, e.StreamID)
+					}
+				}
+			}
+		})
+	}
 }

@@ -689,3 +689,78 @@ func TestIndexHoldsNoContent(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func deltaEvent(stream, text string) message.Event {
+	return message.Event{Delta: &message.Delta{StreamID: stream, Kind: message.KindAssistant, Text: text}}
+}
+
+// TestEvents checks design 001's Events: buffered deltas replay while the
+// turn runs, Messages leaves them out, and an ended turn reads back
+// messages only.
+func TestEvents(t *testing.T) {
+	user, answer := userMsg("m1", "p"), assistantMsg("m2", "", "Hello")
+	run := &fakeRun{ref: ref("s1", "u1"), hold: true, events: []message.Event{
+		{Message: &user},
+		deltaEvent("st", "Hel"),
+		deltaEvent("st", "lo"),
+		{Message: &answer, StreamID: "st"},
+	}}
+	h := &fakeHarness{runs: []*fakeRun{run}, readBack: []message.Message{user, answer}}
+	runtime := newTestRuntime(t, h)
+	turn, err := runtime.Turn(context.Background(), "p")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	shape := func(n int) []string {
+		var out []string
+		for e, err := range turn.Events() {
+			if err != nil {
+				t.Fatalf("Events: %v", err)
+			}
+			switch {
+			case e.Delta != nil:
+				if e.Delta.TurnID != turn.ID() {
+					t.Errorf("delta TurnID %q, want %q", e.Delta.TurnID, turn.ID())
+				}
+				out = append(out, "delta "+e.Delta.Text)
+			default:
+				if e.Message.TurnID != turn.ID() {
+					t.Errorf("message TurnID %q, want %q", e.Message.TurnID, turn.ID())
+				}
+				out = append(out, e.Message.ID+" "+e.StreamID)
+			}
+			if len(out) == n {
+				break
+			}
+		}
+		return out
+	}
+	want := []string{"m1 ", "delta Hel", "delta lo", "m2 st"}
+	for i := 0; i < 2; i++ { // every call replays from the first event
+		if got := shape(4); !reflect.DeepEqual(got, want) {
+			t.Fatalf("call %d: Events = %q, want %q", i+1, got, want)
+		}
+	}
+	var live []string
+	for m, err := range turn.Messages() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		live = append(live, m.ID)
+		if len(live) == 2 {
+			break
+		}
+	}
+	if !reflect.DeepEqual(live, []string{"m1", "m2"}) {
+		t.Fatalf("Messages = %q", live)
+	}
+
+	turn.Terminate()
+	if _, err := turn.Result(); err != ErrTerminated {
+		t.Fatalf("Result: %v", err)
+	}
+	if got := shape(-1); !reflect.DeepEqual(got, []string{"m1 ", "m2 "}) {
+		t.Fatalf("Events after the turn = %q, want messages only", got)
+	}
+}

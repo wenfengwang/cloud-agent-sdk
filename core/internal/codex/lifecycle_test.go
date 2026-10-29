@@ -66,20 +66,24 @@ func (e *fakeEnv) start(t *testing.T, prompt string) harness.Run {
 	return r
 }
 
-// drain collects a run's messages, failing if they do not end in time.
+// drain collects a run's messages, failing if its events do not end in
+// time.
 func drain(t *testing.T, r harness.Run, each func(message.Message)) []message.Message {
 	t.Helper()
 	var out []message.Message
 	timeout := time.After(20 * time.Second)
 	for {
 		select {
-		case m, ok := <-r.Messages():
+		case e, ok := <-r.Events():
 			if !ok {
 				return out
 			}
-			out = append(out, m)
+			if e.Message == nil {
+				continue
+			}
+			out = append(out, *e.Message)
 			if each != nil {
-				each(m)
+				each(*e.Message)
 			}
 		case <-timeout:
 			t.Fatal("Messages was not closed in time")

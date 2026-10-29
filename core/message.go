@@ -44,3 +44,27 @@ type ToolCall = message.ToolCall
 // ToolResult is the completion of a tool call: CallID (the ToolCall's ID),
 // Name, the typed Output, and IsError. It is emitted when the call completes.
 type ToolResult = message.ToolResult
+
+// Event is one item of Turn.Events: a complete Message, or a Delta of
+// assistant text still being generated. Exactly one is set; on a Message
+// event, StreamID names the deltas the message completes.
+//
+//	type Event struct {
+//		Message  *Message
+//		Delta    *Delta
+//		StreamID string
+//	}
+type Event = message.Event
+
+// Delta is a piece of assistant text as the harness generates it. The deltas
+// of one text share a StreamID, which is not a Message.ID; concatenated in
+// order they give the text so far.
+//
+//	type Delta struct {
+//		StreamID        string
+//		TurnID          string
+//		ParentToolUseID string
+//		Kind            Kind // KindAssistant
+//		Text            string
+//	}
+type Delta = message.Delta

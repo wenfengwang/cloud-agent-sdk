@@ -18,6 +18,7 @@ const (
 	methodItemCompleted = "item/completed"
 	methodTokenUsage    = "thread/tokenUsage/updated"
 	methodTurnCompleted = "turn/completed"
+	methodMessageDelta  = "item/agentMessage/delta"
 )
 
 // Turn statuses of turn/completed.
@@ -33,6 +34,8 @@ type notification struct {
 	Params struct {
 		ThreadID   string          `json:"threadId"`
 		TurnID     string          `json:"turnId"`
+		ItemID     string          `json:"itemId"`
+		Delta      string          `json:"delta"`
 		Item       json.RawMessage `json:"item"`
 		TokenUsage *struct {
 			Last tokenUsage `json:"last"`
@@ -62,7 +65,7 @@ type run struct {
 	turn   string
 	ref    harness.Ref
 
-	msgs        chan message.Message
+	events      chan message.Event
 	interrupt   sync.Once
 	interrupted chan struct{} // closed by the first Interrupt
 	done        chan struct{}
@@ -80,7 +83,7 @@ func newRun(h *Harness, server *appServer, thread, turn string) *run {
 		thread:      thread,
 		turn:        turn,
 		ref:         harness.Ref{SessionID: thread, Data: data},
-		msgs:        make(chan message.Message, 64),
+		events:      make(chan message.Event, 64),
 		interrupted: make(chan struct{}),
 		done:        make(chan struct{}),
 	}
@@ -88,8 +91,8 @@ func newRun(h *Harness, server *appServer, thread, turn string) *run {
 	return r
 }
 
-func (r *run) Ref() harness.Ref                 { return r.ref }
-func (r *run) Messages() <-chan message.Message { return r.msgs }
+func (r *run) Ref() harness.Ref             { return r.ref }
+func (r *run) Events() <-chan message.Event { return r.events }
 
 // Interrupt sends turn/interrupt once, without waiting for its response.
 // Once the interrupted turn has ended, the run shuts the app-server down
@@ -116,7 +119,7 @@ func (r *run) Wait() (harness.Outcome, error) {
 // the process ends.
 func (r *run) loop() {
 	defer close(r.done)
-	defer close(r.msgs)
+	defer close(r.events)
 	stream := newStream(r.thread, r.turn)
 	for {
 		line, ok := r.server.next()
@@ -125,9 +128,9 @@ func (r *run) loop() {
 			r.err = fmt.Errorf("codex: turn %s did not complete: %w", r.turn, r.server.err())
 			return
 		}
-		msgs, done := stream.handle(line)
-		for _, m := range msgs {
-			r.msgs <- m
+		events, done := stream.handle(line)
+		for _, e := range events {
+			r.events <- e
 		}
 		if done {
 			r.outcome.Usage = stream.usage
@@ -170,7 +173,7 @@ func newStream(thread, turn string) *stream {
 
 // handle translates one notification line. done reports that the turn
 // completed; s.err then holds its outcome.
-func (s *stream) handle(line []byte) (msgs []message.Message, done bool) {
+func (s *stream) handle(line []byte) (events []message.Event, done bool) {
 	var n notification
 	if err := json.Unmarshal(line, &n); err != nil {
 		return nil, false
@@ -193,9 +196,14 @@ func (s *stream) handle(line []byte) (msgs []message.Message, done bool) {
 		}
 		raw := append(json.RawMessage(nil), line...)
 		if n.Method == methodItemStarted {
-			return s.translator.itemStarted(n.Params.ThreadID, it, n.Params.Item, raw), false
+			return s.translator.events(s.translator.itemStarted(n.Params.ThreadID, it, n.Params.Item, raw)), false
 		}
-		return s.translator.itemCompleted(n.Params.ThreadID, it, n.Params.Item, raw), false
+		return s.translator.events(s.translator.itemCompleted(n.Params.ThreadID, it, n.Params.Item, raw)), false
+	case methodMessageDelta:
+		if own && n.Params.TurnID != s.turn {
+			return nil, false
+		}
+		return []message.Event{s.translator.delta(n.Params.ThreadID, n.Params.ItemID, n.Params.Delta)}, false
 	case methodTokenUsage:
 		// Usage counts the turn's own thread; Codex reports usage of
 		// cached input as part of the input (design 001).

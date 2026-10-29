@@ -91,7 +91,7 @@ type Harness interface {
 
 // Run is one accepted turn.
 //
-// Messages must be drained until it is closed, and only then is Wait called,
+// Events must be drained until it is closed, and only then is Wait called,
 // once. Interrupt and Kill may be called at any time from any goroutine,
 // including after the run ended, and more than once.
 type Run interface {
@@ -99,13 +99,14 @@ type Run interface {
 	// index while the turn runs; SessionID must already be set.
 	Ref() Ref
 
-	// Messages yields the turn's complete canonical messages in harness
-	// order: the user message first, then everything the harness produced.
-	// Message.ID is deterministic from harness IDs so that ReadTurn yields
-	// the same IDs; TurnID is left empty; Raw is always set. The channel is
-	// closed when the turn has ended: the harness finished, was
-	// interrupted or killed, or its process died.
-	Messages() <-chan message.Message
+	// Events yields the turn's complete canonical messages in harness
+	// order, the user message first, interleaved with the deltas that
+	// stream assistant text (design 001, "Deltas"). Message.ID is
+	// deterministic from harness IDs so that ReadTurn yields the same IDs;
+	// TurnID is left empty on messages and deltas; Raw is always set on
+	// messages. The channel is closed when the turn has ended: the harness
+	// finished, was interrupted or killed, or its process died.
+	Events() <-chan message.Event
 
 	// Interrupt asks the harness to stop the turn gracefully (Claude Code:
 	// interrupt control request; Codex: turn/interrupt). It does not block.
@@ -118,11 +119,11 @@ type Run interface {
 	// (proc.KillTree), so that no tool process survives. The agent calls it
 	// when a run has not ended within its grace period after Interrupt, and
 	// when the index cannot be written after acceptance. After Kill,
-	// Messages is closed promptly. A later StartTurn must start a fresh
+	// Events is closed promptly. A later StartTurn must start a fresh
 	// process that continues the conversation.
 	Kill()
 
-	// Wait returns the outcome after Messages has been closed. A non-nil
+	// Wait returns the outcome after Events has been closed. A non-nil
 	// error means the harness or its process failed: a non-zero exit, a
 	// protocol or RPC error, or a turn the harness reported as failed. After
 	// Interrupt or Kill the agent ignores the error.

@@ -33,6 +33,9 @@ type Recorded struct {
 	Traffic [][]fakeharness.TrafficLine
 	// Home maps paths relative to the harness home to file contents.
 	Home map[string][]byte
+	// Deltas reads the harness's delta lines so that WriteFixture scrubs
+	// values split across deltas; nil scrubs line by line only.
+	Deltas DeltaCodec
 }
 
 // WriteFixture scrubs rec and writes it to dir, replacing meta.json, every
@@ -46,6 +49,11 @@ func WriteFixture(dir string, rec Recorded, s *Scrubber) error {
 	}
 	files["meta.json"] = append(s.Scrub(meta), '\n')
 	for i, lines := range rec.Traffic {
+		if rec.Deltas != nil {
+			if lines, err = ScrubStreams(lines, rec.Deltas, s); err != nil {
+				return err
+			}
+		}
 		var buf bytes.Buffer
 		for _, l := range lines {
 			l.Line = s.Scrub(l.Line)

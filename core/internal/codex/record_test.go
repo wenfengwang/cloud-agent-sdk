@@ -71,7 +71,11 @@ func recordScenario(t *testing.T, s testenv.Scenario) {
 		}
 		stopped := false
 		var live []message.Message
-		for m := range r.Messages() {
+		for e := range r.Events() {
+			if e.Message == nil {
+				continue
+			}
+			m := *e.Message
 			live = append(live, m)
 			if !stopped && s.TerminateWhen != nil && s.TerminateWhen(m) {
 				stopped = true
@@ -107,6 +111,7 @@ func recordScenario(t *testing.T, s testenv.Scenario) {
 		Meta:    testenv.Meta{Harness: "codex", Version: versions.Codex, Scenario: s.Name, Prompts: s.Prompts},
 		Traffic: traffic,
 		Home:    map[string][]byte{},
+		Deltas:  deltaCodec{},
 	}
 	sessions := filepath.Join(env.Home, "sessions")
 	err = filepath.WalkDir(sessions, func(path string, d fs.DirEntry, err error) error {
@@ -199,4 +204,38 @@ func firstDifference(a, b []message.Message) string {
 		}
 	}
 	return "lengths differ"
+}
+
+// deltaCodec reads the item/agentMessage/delta lines of Codex traffic for
+// stream-aware scrubbing.
+type deltaCodec struct{}
+
+func (deltaCodec) Streams(lines []fakeharness.TrafficLine) []string {
+	out := make([]string, len(lines))
+	for i, l := range lines {
+		var n notification
+		if l.Dir == fakeharness.DirRecv && json.Unmarshal(l.Line, &n) == nil && n.Method == methodMessageDelta {
+			out[i] = n.Params.ThreadID + "/" + n.Params.ItemID
+		}
+	}
+	return out
+}
+
+func (deltaCodec) Text(line []byte) string {
+	var n notification
+	_ = json.Unmarshal(line, &n)
+	return n.Params.Delta
+}
+
+func (deltaCodec) SetText(line []byte, text string) ([]byte, error) {
+	var m map[string]any
+	if err := json.Unmarshal(line, &m); err != nil {
+		return nil, err
+	}
+	params, ok := m["params"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("codex: delta without params")
+	}
+	params["delta"] = text
+	return json.Marshal(m)
 }

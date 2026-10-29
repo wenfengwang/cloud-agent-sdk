@@ -119,19 +119,108 @@ func readFixture(t *testing.T, dir string) testenv.Recorded {
 
 func translateTraffic(t *testing.T, traffic []fakeharness.TrafficLine) []message.Message {
 	t.Helper()
+	return testenv.MessagesOf(trafficEvents(t, traffic))
+}
+
+func trafficEvents(t *testing.T, traffic []fakeharness.TrafficLine) []message.Event {
+	t.Helper()
 	translator := newTranslator()
-	var out []message.Message
+	var out []message.Event
 	for _, l := range traffic {
 		if l.Dir != fakeharness.DirRecv {
 			continue
 		}
-		msgs, err := translator.streamLine(l.Line)
+		events, err := translator.streamLine(l.Line)
 		if err != nil {
 			t.Fatalf("translate %s: %v", l.Line, err)
 		}
-		out = append(out, msgs...)
+		out = append(out, events...)
 	}
 	return out
+}
+
+// TestDeltas checks the delta rules of design 001 over every fixture. The
+// fixtures are recorded with --include-partial-messages, so every turn with
+// top-level assistant text streams it.
+func TestDeltas(t *testing.T) {
+	for _, s := range testenv.Scenarios() {
+		t.Run(s.Name, func(t *testing.T) {
+			rec := readFixture(t, filepath.Join("testdata", s.Name))
+			for i, traffic := range rec.Traffic {
+				events := trafficEvents(t, traffic)
+				for _, p := range testenv.DeltaProblems(events) {
+					t.Errorf("turn %d: %s", i+1, p)
+				}
+				top := 0
+				for _, m := range testenv.MessagesOf(events) {
+					if m.Kind == message.KindAssistant && m.ParentToolUseID == "" {
+						top++
+					}
+				}
+				if top > 0 && testenv.StreamCount(events) == 0 {
+					t.Errorf("turn %d: %d top-level assistant messages, none streamed", i+1, top)
+				}
+			}
+		})
+	}
+}
+
+// TestStreamEvents translates partial-message lines shaped like those of the
+// pinned CLI: a tool_use block (not streamed), then a text block whose
+// complete assistant line arrives before content_block_stop.
+func TestStreamEvents(t *testing.T) {
+	lines := []string{
+		`{"type":"system","subtype":"init","session_id":"s"}`,
+		`{"type":"user","uuid":"u1","isReplay":true,"parent_tool_use_id":null,"message":{"role":"user","content":"hi"}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"message_start","message":{"id":"msg_A"}}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"call1","name":"Bash"}}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"command\""}}}`,
+		`{"type":"assistant","uuid":"a1","parent_tool_use_id":null,"message":{"id":"msg_A","content":[{"type":"tool_use","id":"call1","name":"Bash","input":{"command":"ls"}}]}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_stop","index":0}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"message_stop"}}`,
+		`{"type":"user","uuid":"r1","parent_tool_use_id":null,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"call1","content":"a.txt"}]}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"message_start","message":{"id":"msg_B"}}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"There is "}}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"one file."}}}`,
+		`{"type":"assistant","uuid":"a2","parent_tool_use_id":null,"message":{"id":"msg_B","content":[{"type":"text","text":"There is one file."}]}}`,
+		`{"type":"stream_event","parent_tool_use_id":null,"event":{"type":"content_block_stop","index":0}}`,
+		`{"type":"result","subtype":"success"}`,
+	}
+	translator := newTranslator()
+	var events []message.Event
+	for _, l := range lines {
+		got, err := translator.streamLine([]byte(l))
+		if err != nil {
+			t.Fatalf("%s: %v", l, err)
+		}
+		events = append(events, got...)
+	}
+	if p := testenv.DeltaProblems(events); len(p) != 0 {
+		t.Fatalf("delta problems: %q", p)
+	}
+	var shape []string
+	for _, e := range events {
+		switch {
+		case e.Delta != nil:
+			shape = append(shape, "delta "+e.Delta.StreamID+" "+e.Delta.Text)
+		case e.StreamID != "":
+			shape = append(shape, string(e.Message.Kind)+" "+e.Message.ID+" completes "+e.StreamID)
+		default:
+			shape = append(shape, string(e.Message.Kind)+" "+e.Message.ID)
+		}
+	}
+	want := []string{
+		"user u1",
+		"tool_call a1:0",
+		"tool_result r1:0",
+		"delta msg_B:0 There is ",
+		"delta msg_B:0 one file.",
+		"assistant a2:0 completes msg_B:0",
+	}
+	if strings.Join(shape, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("events\n%s\nwant\n%s", strings.Join(shape, "\n"), strings.Join(want, "\n"))
+	}
 }
 
 func finalText(msgs []message.Message) string {

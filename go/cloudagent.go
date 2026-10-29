@@ -51,6 +51,10 @@ type (
 	ToolCall = core.ToolCall
 	// ToolResult is the completion of a tool call, correlated by CallID.
 	ToolResult = core.ToolResult
+	// Event is one item of Turn.Events: a complete Message or a Delta.
+	Event = core.Event
+	// Delta is a piece of assistant text as the harness generates it.
+	Delta = core.Delta
 )
 
 // The message kinds.

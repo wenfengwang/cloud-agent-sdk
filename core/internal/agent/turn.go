@@ -31,7 +31,7 @@ type Turn struct {
 	cond      *sync.Cond
 	run       harness.Run
 	ref       harness.Ref
-	buf       []message.Message
+	buf       []message.Event
 	stopCause error // ErrTerminated, ErrClosed, or the context's error
 	finishing bool  // the run has ended; stops are no-ops from here on
 	ended     bool  // the result and the index are final
@@ -53,6 +53,23 @@ func (t *Turn) ID() string { return t.id }
 // turn has ended, a new call reads the turn back from the harness home.
 func (t *Turn) Messages() iter.Seq2[message.Message, error] {
 	return func(yield func(message.Message, error) bool) {
+		for e, err := range t.Events() {
+			if err != nil {
+				yield(message.Message{}, err)
+				return
+			}
+			if e.Message != nil && !yield(*e.Message, nil) {
+				return
+			}
+		}
+	}
+}
+
+// Events yields every event of the turn from the first: messages and, while
+// the turn runs, the buffered deltas. Once the turn has ended, a new call
+// reads the turn back from the harness home and yields its messages only.
+func (t *Turn) Events() iter.Seq2[message.Event, error] {
+	return func(yield func(message.Event, error) bool) {
 		t.mu.Lock()
 		ended, ref := t.ended, t.ref
 		t.mu.Unlock()
@@ -69,24 +86,24 @@ func (t *Turn) Messages() iter.Seq2[message.Message, error] {
 				t.mu.Unlock()
 				return
 			}
-			m := t.buf[i]
+			e := t.buf[i]
 			t.mu.Unlock()
-			if !yield(m, nil) {
+			if !yield(e, nil) {
 				return
 			}
 		}
 	}
 }
 
-func (t *Turn) readBack(ref harness.Ref, yield func(message.Message, error) bool) {
+func (t *Turn) readBack(ref harness.Ref, yield func(message.Event, error) bool) {
 	msgs, err := t.runtime.adapter.ReadTurn(context.Background(), ref)
 	if err != nil {
-		yield(message.Message{}, fmt.Errorf("cloudagent: read turn %s: %w", t.id, err))
+		yield(message.Event{}, fmt.Errorf("cloudagent: read turn %s: %w", t.id, err))
 		return
 	}
-	for _, m := range msgs {
-		m.TurnID = t.id
-		if !yield(m, nil) {
+	for i := range msgs {
+		msgs[i].TurnID = t.id
+		if !yield(message.Event{Message: &msgs[i]}, nil) {
 			return
 		}
 	}
@@ -172,12 +189,22 @@ func (t *Turn) interrupt(run harness.Run) {
 	}()
 }
 
-// pump buffers the run's messages, then records the outcome.
+// pump buffers the run's events, then records the outcome. Every buffered
+// event gets its own copy of the message or delta, stamped with the turn ID.
 func (t *Turn) pump(run harness.Run) {
-	for m := range run.Messages() {
-		m.TurnID = t.id
+	for e := range run.Events() {
+		if e.Message != nil {
+			m := *e.Message
+			m.TurnID = t.id
+			e.Message = &m
+		}
+		if e.Delta != nil {
+			d := *e.Delta
+			d.TurnID = t.id
+			e.Delta = &d
+		}
 		t.mu.Lock()
-		t.buf = append(t.buf, m)
+		t.buf = append(t.buf, e)
 		t.cond.Broadcast()
 		t.mu.Unlock()
 	}
@@ -226,10 +253,10 @@ func outcome(cause, runErr error) (string, error) {
 }
 
 // finalText returns the text of the last top-level assistant message.
-func finalText(msgs []message.Message) string {
-	for i := len(msgs) - 1; i >= 0; i-- {
-		m := msgs[i]
-		if m.Kind == message.KindAssistant && m.ParentToolUseID == "" && m.Assistant != nil {
+func finalText(events []message.Event) string {
+	for i := len(events) - 1; i >= 0; i-- {
+		m := events[i].Message
+		if m != nil && m.Kind == message.KindAssistant && m.ParentToolUseID == "" && m.Assistant != nil {
 			return m.Assistant.Text
 		}
 	}

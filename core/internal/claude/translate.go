@@ -19,8 +19,26 @@ type entry struct {
 	ParentToolUseID *string `json:"parent_tool_use_id"`
 	IsReplay        bool    `json:"isReplay"`
 	Message         struct {
+		ID      string          `json:"id"`
 		Content json.RawMessage `json:"content"`
 	} `json:"message"`
+	Event *streamEvent `json:"event"` // stream_event lines (--include-partial-messages)
+}
+
+// streamEvent is the API streaming event of a stream_event line.
+type streamEvent struct {
+	Type    string `json:"type"`
+	Index   int    `json:"index"`
+	Message struct {
+		ID string `json:"id"`
+	} `json:"message"`
+	ContentBlock struct {
+		Type string `json:"type"`
+	} `json:"content_block"`
+	Delta struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"delta"`
 }
 
 // block is one content block of an assistant or user message.
@@ -41,16 +59,29 @@ type block struct {
 // translator per turn, fed in harness order.
 type translator struct {
 	calls map[string]message.ToolName
+	// Delta streams (design 001, "Deltas"): the API message each parent is
+	// streaming, the text blocks being streamed, and per API message the
+	// streams not yet completed by an assistant line, oldest first.
+	streaming map[string]string
+	streams   map[string]bool
+	open      map[string][]string
 }
 
 func newTranslator() *translator {
-	return &translator{calls: map[string]message.ToolName{}}
+	return &translator{
+		calls:     map[string]message.ToolName{},
+		streaming: map[string]string{},
+		streams:   map[string]bool{},
+		open:      map[string][]string{},
+	}
 }
 
 // streamLine translates one stdout line of the stream-json protocol. The
 // echoed prompt (isReplay) becomes the turn's user message; every other user
 // text (subagent prompts, interruption notices) is not a canonical message.
-func (t *translator) streamLine(line []byte) ([]message.Message, error) {
+// Text deltas of stream_event lines become deltas, and the assistant text
+// block that completes a stream carries its StreamID.
+func (t *translator) streamLine(line []byte) ([]message.Event, error) {
 	var e entry
 	if err := json.Unmarshal(line, &e); err != nil {
 		return nil, fmt.Errorf("claude: parse stream line: %w", err)
@@ -59,7 +90,46 @@ func (t *translator) streamLine(line []byte) ([]message.Message, error) {
 	if e.ParentToolUseID != nil {
 		parent = *e.ParentToolUseID
 	}
-	return t.translate(e, line, parent, e.IsReplay)
+	if e.Type == "stream_event" {
+		return t.streamEvent(e.Event, parent), nil
+	}
+	msgs, err := t.translate(e, line, parent, e.IsReplay)
+	events := make([]message.Event, len(msgs))
+	for i := range msgs {
+		events[i] = message.Event{Message: &msgs[i]}
+		if msgs[i].Kind == message.KindAssistant && e.Type == "assistant" {
+			if open := t.open[e.Message.ID]; len(open) > 0 {
+				events[i].StreamID, t.open[e.Message.ID] = open[0], open[1:]
+			}
+		}
+	}
+	return events, err
+}
+
+// streamEvent tracks the text blocks of the API message being streamed and
+// turns their text deltas into deltas. A stream's ID is
+// <message.id>:<index>.
+func (t *translator) streamEvent(ev *streamEvent, parent string) []message.Event {
+	if ev == nil {
+		return nil
+	}
+	switch ev.Type {
+	case "message_start":
+		t.streaming[parent] = ev.Message.ID
+	case "content_block_start":
+		if ev.ContentBlock.Type == "text" {
+			id := t.streaming[parent]
+			stream := id + ":" + strconv.Itoa(ev.Index)
+			t.streams[stream] = true
+			t.open[id] = append(t.open[id], stream)
+		}
+	case "content_block_delta":
+		stream := t.streaming[parent] + ":" + strconv.Itoa(ev.Index)
+		if ev.Delta.Type == "text_delta" && t.streams[stream] {
+			return []message.Event{{Delta: &message.Delta{StreamID: stream, ParentToolUseID: parent, Kind: message.KindAssistant, Text: ev.Delta.Text}}}
+		}
+	}
+	return nil
 }
 
 // transcriptEntry translates one transcript entry; prompt marks the turn's

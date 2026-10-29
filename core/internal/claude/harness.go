@@ -63,6 +63,7 @@ func (h *Harness) StartTurn(ctx context.Context, prompt string) (harness.Run, er
 		"--input-format", "stream-json",
 		"--verbose",
 		"--replay-user-messages",
+		"--include-partial-messages",
 		"--permission-mode", "bypassPermissions",
 	}
 	if h.cfg.Model != "" {

@@ -5,7 +5,7 @@ number: "002"
 status: partial
 supersedes: ""
 related: ["001"]
-last_verified: "2026-10-14"
+last_verified: "2026-10-29"
 ---
 
 # 002 — Testing
@@ -176,7 +176,7 @@ For each scenario, the recording test seeds a temporary working directory, drive
 
 Codex offers the model `apply_patch`, but the model edits files with shell commands unless told otherwise. Codex recording therefore sends a test-only configuration override with `thread/start`, developer instructions that ask for `apply_patch`, so the `write-file` and `edit-file` scenarios produce `fileChange` items and the `file_patch` row gets a real fixture. Real CLI tests run through the public API, which has no override hook, so they apply the same instructions by writing `developer_instructions` into the `config.toml` of the temporary `CODEX_HOME`. Production runs do neither.
 
-Scrubbing replaces with `REDACTED` every credential value loaded from `.harness-local/`, bearer tokens, authorization headers, and anything matching an API key pattern, then replaces paths with the placeholders above. The recording fails, writing nothing, if any loaded credential value is still present afterwards.
+Scrubbing replaces with `REDACTED` every credential value loaded from `.harness-local/`, bearer tokens, authorization headers, and anything matching an API key pattern, then replaces paths with the placeholders above. The recording fails, writing nothing, if any loaded credential value is still present afterwards. Line-by-line scrubbing misses a value a harness split across streamed text deltas, so each adapter's recorder also gives `WriteFixture` a codec for its delta lines: the concatenated text of every delta stream is scrubbed, and a stream whose text that changes is merged into a single delta holding the scrubbed text.
 
 ### Scenarios
 

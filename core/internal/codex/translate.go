@@ -108,10 +108,32 @@ type translator struct {
 	started  map[string]bool   // tool items (and subagent results) already emitted, by ID
 	spawns   map[string]string // subagent thread ID -> ID of the subagent call that started it
 	lastText map[string]string // thread ID -> text of its last agentMessage
+	streamed map[string]bool   // agentMessage item IDs that received deltas
 }
 
 func newTranslator() *translator {
-	return &translator{started: map[string]bool{}, spawns: map[string]string{}, lastText: map[string]string{}}
+	return &translator{started: map[string]bool{}, spawns: map[string]string{}, lastText: map[string]string{}, streamed: map[string]bool{}}
+}
+
+// delta translates an item/agentMessage/delta notification of thread. The
+// stream is the item, so its StreamID is the ID of the message that
+// completes it.
+func (t *translator) delta(thread, itemID, text string) message.Event {
+	t.streamed[itemID] = true
+	return message.Event{Delta: &message.Delta{StreamID: itemID, ParentToolUseID: t.spawns[thread], Kind: message.KindAssistant, Text: text}}
+}
+
+// events wraps translated messages as events; an assistant message whose
+// item received deltas completes their stream.
+func (t *translator) events(msgs []message.Message) []message.Event {
+	out := make([]message.Event, len(msgs))
+	for i := range msgs {
+		out[i] = message.Event{Message: &msgs[i]}
+		if msgs[i].Kind == message.KindAssistant && t.streamed[msgs[i].ID] {
+			out[i].StreamID = msgs[i].ID
+		}
+	}
+	return out
 }
 
 // follows reports whether thread is a subagent thread of this turn.

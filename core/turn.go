@@ -49,3 +49,9 @@ func (t *Turn) Result() (Result, error) {
 // Terminate requests a graceful stop and returns without waiting; call
 // Result to wait. Calling it on a finished turn is a no-op.
 func (t *Turn) Terminate() error { return t.turn.Terminate() }
+
+// Events yields every event of the turn from the first: its messages, in the
+// same order as Messages, interleaved with the deltas that stream assistant
+// text while the turn is live. Deltas exist only in memory; once the turn
+// has ended, a new call reads the turn back and yields its messages only.
+func (t *Turn) Events() iter.Seq2[Event, error] { return t.turn.Events() }

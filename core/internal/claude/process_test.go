@@ -69,11 +69,15 @@ func drain(t *testing.T, h *Harness, prompt string, onMessage func(harness.Run, 
 	timeout := time.After(20 * time.Second)
 	for {
 		select {
-		case m, ok := <-run.Messages():
+		case e, ok := <-run.Events():
 			if !ok {
 				out, err := run.Wait()
 				return msgs, run, out, err
 			}
+			if e.Message == nil {
+				continue
+			}
+			m := *e.Message
 			msgs = append(msgs, m)
 			if onMessage != nil {
 				onMessage(run, m)
@@ -302,7 +306,7 @@ func TestRunKill(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	start := time.Now()
 	run.Kill()
-	for range run.Messages() {
+	for range run.Events() {
 	}
 	if d := time.Since(start); d > 3*time.Second {
 		t.Errorf("Messages closed %s after Kill", d)

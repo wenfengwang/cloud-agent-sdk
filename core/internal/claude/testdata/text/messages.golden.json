@@ -1,6 +1,6 @@
 [
   {
-    "ID": "3b676a86-5f84-4c10-8b66-a9c6d413ef33",
+    "ID": "84afa1dc-591b-47ea-985a-85251f0183fd",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "user",
@@ -19,13 +19,13 @@
       },
       "session_id": "@SESSION_ID@",
       "parent_tool_use_id": null,
-      "uuid": "3b676a86-5f84-4c10-8b66-a9c6d413ef33",
-      "timestamp": "2026-10-14T20:24:52.013Z",
+      "uuid": "84afa1dc-591b-47ea-985a-85251f0183fd",
+      "timestamp": "2026-10-29T03:23:59.053Z",
       "isReplay": true
     }
   },
   {
-    "ID": "b27b4cd6-9856-421f-a956-e7340f9c8a66:0",
+    "ID": "856fea07-3b2f-4f19-ac72-356feced11de:0",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "assistant",
@@ -40,7 +40,7 @@
       "type": "assistant",
       "message": {
         "model": "claude-opus-5-5",
-        "id": "msg_011Cg2koUAmE34xKgsxXtRVx",
+        "id": "msg_011CgVp61gyvYMhWBXz8cRz2",
         "type": "message",
         "role": "assistant",
         "content": [
@@ -63,15 +63,16 @@
           },
           "output_tokens": 8,
           "service_tier": "standard",
-          "inference_geo": "global"
+          "inference_geo": "global",
+          "speed": "standard"
         },
         "diagnostics": null,
         "context_management": null
       },
       "parent_tool_use_id": null,
       "session_id": "@SESSION_ID@",
-      "uuid": "b27b4cd6-9856-421f-a956-e7340f9c8a66",
-      "timestamp": "2026-10-14T20:24:53.577Z"
+      "uuid": "856fea07-3b2f-4f19-ac72-356feced11de",
+      "timestamp": "2026-10-29T03:24:00.669Z"
     }
   }
 ]

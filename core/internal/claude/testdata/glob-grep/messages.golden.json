@@ -1,6 +1,6 @@
 [
   {
-    "ID": "ac04267f-4923-46b7-94ce-df88148f91bc",
+    "ID": "ccd14713-0f95-453c-bb05-36aa48d7863f",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "user",
@@ -19,13 +19,13 @@
       },
       "session_id": "@SESSION_ID@",
       "parent_tool_use_id": null,
-      "uuid": "ac04267f-4923-46b7-94ce-df88148f91bc",
-      "timestamp": "2026-10-14T20:25:45.125Z",
+      "uuid": "ccd14713-0f95-453c-bb05-36aa48d7863f",
+      "timestamp": "2026-10-29T03:24:23.287Z",
       "isReplay": true
     }
   },
   {
-    "ID": "9e0bb4b3-1f15-4991-933a-9208e94e0f9e:0",
+    "ID": "3a71b1f9-10e0-4592-9091-c0581dc519cb:0",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "tool_call",
@@ -33,7 +33,7 @@
     "Assistant": null,
     "Reasoning": null,
     "ToolCall": {
-      "ID": "toolu_01KLCA7TuS6fFFjwGpwh8rsF",
+      "ID": "toolu_01CfGy91KqEEXubFd4ySGpcT",
       "Name": "shell",
       "RawName": "Bash",
       "Input": {
@@ -47,13 +47,13 @@
       "type": "assistant",
       "message": {
         "model": "claude-opus-5-5",
-        "id": "msg_011Cg2ksP7X4FNuSDMN5Td5S",
+        "id": "msg_011CgVp7nTow5kS9UzLcX3Pz",
         "type": "message",
         "role": "assistant",
         "content": [
           {
             "type": "tool_use",
-            "id": "toolu_01KLCA7TuS6fFFjwGpwh8rsF",
+            "id": "toolu_01CfGy91KqEEXubFd4ySGpcT",
             "name": "Bash",
             "input": {
               "command": "ls src/*.go",
@@ -78,19 +78,74 @@
           },
           "output_tokens": 16,
           "service_tier": "standard",
-          "inference_geo": "global"
+          "inference_geo": "global",
+          "speed": "standard"
         },
         "diagnostics": null,
         "context_management": null
       },
       "parent_tool_use_id": null,
       "session_id": "@SESSION_ID@",
-      "uuid": "9e0bb4b3-1f15-4991-933a-9208e94e0f9e",
-      "timestamp": "2026-10-14T20:25:47.660Z"
+      "uuid": "3a71b1f9-10e0-4592-9091-c0581dc519cb",
+      "timestamp": "2026-10-29T03:24:25.208Z"
     }
   },
   {
-    "ID": "40c908bd-9a4d-4279-b6f0-c8e3c891997b:0",
+    "ID": "9a3992be-fa54-4ff4-b15c-8e3508215d07:0",
+    "TurnID": "",
+    "ParentToolUseID": "",
+    "Kind": "tool_result",
+    "User": null,
+    "Assistant": null,
+    "Reasoning": null,
+    "ToolCall": null,
+    "ToolResult": {
+      "CallID": "toolu_01CfGy91KqEEXubFd4ySGpcT",
+      "Name": "shell",
+      "Output": {
+        "Output": "src/alpha.go\nsrc/bravo.go",
+        "ExitCode": 0
+      },
+      "IsError": false
+    },
+    "Raw": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_01CfGy91KqEEXubFd4ySGpcT",
+            "type": "tool_result",
+            "content": "src/alpha.go\nsrc/bravo.go",
+            "is_error": false
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "@SESSION_ID@",
+      "uuid": "9a3992be-fa54-4ff4-b15c-8e3508215d07",
+      "timestamp": "2026-10-29T03:24:25.269Z",
+      "tool_use_result": {
+        "stdout": "src/alpha.go\nsrc/bravo.go",
+        "stderr": "",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_01CfGy91KqEEXubFd4ySGpcT",
+          "permission_decision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "mode"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "ID": "19a5a6d0-546e-4f2c-bc4a-27173d5b351b:0",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "tool_call",
@@ -98,7 +153,7 @@
     "Assistant": null,
     "Reasoning": null,
     "ToolCall": {
-      "ID": "toolu_01VHHNVmHb7v3hV3mcUhoMeE",
+      "ID": "toolu_011Gu77wT1d3v3cPNeuKAZh8",
       "Name": "shell",
       "RawName": "Bash",
       "Input": {
@@ -112,13 +167,13 @@
       "type": "assistant",
       "message": {
         "model": "claude-opus-5-5",
-        "id": "msg_011Cg2ksP7X4FNuSDMN5Td5S",
+        "id": "msg_011CgVp7unbBQ5bqBWPQWLLf",
         "type": "message",
         "role": "assistant",
         "content": [
           {
             "type": "tool_use",
-            "id": "toolu_01VHHNVmHb7v3hV3mcUhoMeE",
+            "id": "toolu_011Gu77wT1d3v3cPNeuKAZh8",
             "name": "Bash",
             "input": {
               "command": "grep -rlw needle src",
@@ -135,27 +190,28 @@
         "stop_details": null,
         "usage": {
           "input_tokens": 2,
-          "cache_creation_input_tokens": 5501,
-          "cache_read_input_tokens": 17382,
+          "cache_creation_input_tokens": 123,
+          "cache_read_input_tokens": 22883,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 5501,
+            "ephemeral_5m_input_tokens": 123,
             "ephemeral_1h_input_tokens": 0
           },
           "output_tokens": 16,
           "service_tier": "standard",
-          "inference_geo": "global"
+          "inference_geo": "global",
+          "speed": "standard"
         },
         "diagnostics": null,
         "context_management": null
       },
       "parent_tool_use_id": null,
       "session_id": "@SESSION_ID@",
-      "uuid": "40c908bd-9a4d-4279-b6f0-c8e3c891997b",
-      "timestamp": "2026-10-14T20:25:47.681Z"
+      "uuid": "19a5a6d0-546e-4f2c-bc4a-27173d5b351b",
+      "timestamp": "2026-10-29T03:24:27.079Z"
     }
   },
   {
-    "ID": "5e4c6961-8385-4f23-8c73-d3ab087602f9:0",
+    "ID": "eae2c306-6ab9-465f-bff1-013ac867757f:0",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "tool_result",
@@ -164,61 +220,7 @@
     "Reasoning": null,
     "ToolCall": null,
     "ToolResult": {
-      "CallID": "toolu_01KLCA7TuS6fFFjwGpwh8rsF",
-      "Name": "shell",
-      "Output": {
-        "Output": "src/alpha.go\nsrc/bravo.go",
-        "ExitCode": 0
-      },
-      "IsError": false
-    },
-    "Raw": {
-      "type": "user",
-      "message": {
-        "role": "user",
-        "content": [
-          {
-            "tool_use_id": "toolu_01KLCA7TuS6fFFjwGpwh8rsF",
-            "type": "tool_result",
-            "content": "src/alpha.go\nsrc/bravo.go",
-            "is_error": false
-          }
-        ]
-      },
-      "parent_tool_use_id": null,
-      "session_id": "@SESSION_ID@",
-      "uuid": "5e4c6961-8385-4f23-8c73-d3ab087602f9",
-      "timestamp": "2026-10-14T20:25:47.737Z",
-      "tool_use_result": {
-        "stdout": "src/alpha.go\nsrc/bravo.go",
-        "stderr": "",
-        "interrupted": false,
-        "isImage": false,
-        "noOutputExpected": false
-      },
-      "tool_result_meta": [
-        {
-          "id": "toolu_01KLCA7TuS6fFFjwGpwh8rsF",
-          "permission_decision": {
-            "decision": "accept",
-            "source": "config",
-            "reason_type": "mode"
-          }
-        }
-      ]
-    }
-  },
-  {
-    "ID": "1537eb81-60e1-4ceb-947f-e4d1b7ed0cbc:0",
-    "TurnID": "",
-    "ParentToolUseID": "",
-    "Kind": "tool_result",
-    "User": null,
-    "Assistant": null,
-    "Reasoning": null,
-    "ToolCall": null,
-    "ToolResult": {
-      "CallID": "toolu_01VHHNVmHb7v3hV3mcUhoMeE",
+      "CallID": "toolu_011Gu77wT1d3v3cPNeuKAZh8",
       "Name": "shell",
       "Output": {
         "Output": "src/bravo.go",
@@ -232,7 +234,7 @@
         "role": "user",
         "content": [
           {
-            "tool_use_id": "toolu_01VHHNVmHb7v3hV3mcUhoMeE",
+            "tool_use_id": "toolu_011Gu77wT1d3v3cPNeuKAZh8",
             "type": "tool_result",
             "content": "src/bravo.go",
             "is_error": false
@@ -241,8 +243,8 @@
       },
       "parent_tool_use_id": null,
       "session_id": "@SESSION_ID@",
-      "uuid": "1537eb81-60e1-4ceb-947f-e4d1b7ed0cbc",
-      "timestamp": "2026-10-14T20:25:47.741Z",
+      "uuid": "eae2c306-6ab9-465f-bff1-013ac867757f",
+      "timestamp": "2026-10-29T03:24:27.115Z",
       "tool_use_result": {
         "stdout": "src/bravo.go",
         "stderr": "",
@@ -252,7 +254,7 @@
       },
       "tool_result_meta": [
         {
-          "id": "toolu_01VHHNVmHb7v3hV3mcUhoMeE",
+          "id": "toolu_011Gu77wT1d3v3cPNeuKAZh8",
           "permission_decision": {
             "decision": "accept",
             "source": "config",
@@ -263,13 +265,13 @@
     }
   },
   {
-    "ID": "a11e4e43-736d-4a4d-b4a8-0b825a2f06ea:0",
+    "ID": "3e5ff388-6538-48dc-b809-9803ad19592c:0",
     "TurnID": "",
     "ParentToolUseID": "",
     "Kind": "assistant",
     "User": null,
     "Assistant": {
-      "Text": "Two files match `src/*.go`:\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word \"needle\" is in **`src/bravo.go`**. It's the only file in `src` that contains it."
+      "Text": "Two files match `src/*.go`:\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word \"needle\" is only in **`src/bravo.go`**."
     },
     "Reasoning": null,
     "ToolCall": null,
@@ -278,13 +280,13 @@
       "type": "assistant",
       "message": {
         "model": "claude-opus-5-5",
-        "id": "msg_011Cg2ksariJ22fBGRUvw6QB",
+        "id": "msg_011CgVp83GYe7KBN45kWLEYa",
         "type": "message",
         "role": "assistant",
         "content": [
           {
             "type": "text",
-            "text": "Two files match `src/*.go`:\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word \"needle\" is in **`src/bravo.go`**. It's the only file in `src` that contains it."
+            "text": "Two files match `src/*.go`:\n- `src/alpha.go`\n- `src/bravo.go`\n\nThe word \"needle\" is only in **`src/bravo.go`**."
           }
         ],
         "container": null,
@@ -293,23 +295,24 @@
         "stop_details": null,
         "usage": {
           "input_tokens": 2,
-          "cache_creation_input_tokens": 261,
-          "cache_read_input_tokens": 22883,
+          "cache_creation_input_tokens": 119,
+          "cache_read_input_tokens": 23006,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 261,
+            "ephemeral_5m_input_tokens": 119,
             "ephemeral_1h_input_tokens": 0
           },
-          "output_tokens": 71,
+          "output_tokens": 58,
           "service_tier": "standard",
-          "inference_geo": "global"
+          "inference_geo": "global",
+          "speed": "standard"
         },
         "diagnostics": null,
         "context_management": null
       },
       "parent_tool_use_id": null,
       "session_id": "@SESSION_ID@",
-      "uuid": "a11e4e43-736d-4a4d-b4a8-0b825a2f06ea",
-      "timestamp": "2026-10-14T20:25:49.667Z"
+      "uuid": "3e5ff388-6538-48dc-b809-9803ad19592c",
+      "timestamp": "2026-10-29T03:24:28.664Z"
     }
   }
 ]

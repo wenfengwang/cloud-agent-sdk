@@ -31,7 +31,7 @@ var markers = map[core.Harness]struct {
 	accepted   string // the line that makes the turn accepted, or follows it
 	shellCall  string // the first line that carries a shell tool call
 }{
-	core.ClaudeCode: {acceptance: `"isReplay":true`, accepted: `"isReplay":true`, shellCall: `"type":"tool_use"`},
+	core.ClaudeCode: {acceptance: `"isReplay":true`, accepted: `"isReplay":true`, shellCall: `"content":[{"type":"tool_use"`},
 	core.Codex:      {acceptance: `"result":{"turn":`, accepted: `"type":"userMessage"`, shellCall: `"type":"commandExecution"`},
 }
 
@@ -206,10 +206,19 @@ func messageIDs(msgs []core.Message) []string {
 func collect(t *testing.T, turn *core.Turn, each func(core.Message)) []core.Message {
 	t.Helper()
 	var out []core.Message
-	for m, err := range turn.Messages() {
+	var events []core.Event
+	for e, err := range turn.Events() {
 		if err != nil {
-			t.Fatalf("Messages: %v", err)
+			t.Fatalf("Events: %v", err)
 		}
+		events = append(events, e)
+		if d := e.Delta; d != nil {
+			if d.TurnID != turn.ID() {
+				t.Errorf("delta of stream %s has TurnID %q, want %q", d.StreamID, d.TurnID, turn.ID())
+			}
+			continue
+		}
+		m := *e.Message
 		if m.TurnID != turn.ID() {
 			t.Errorf("message %s has TurnID %q, want %q", m.ID, m.TurnID, turn.ID())
 		}
@@ -217,6 +226,9 @@ func collect(t *testing.T, turn *core.Turn, each func(core.Message)) []core.Mess
 		if each != nil {
 			each(m)
 		}
+	}
+	for _, p := range testenv.DeltaProblems(events) {
+		t.Errorf("turn %s: %s", turn.ID(), p)
 	}
 	return out
 }

@@ -31,10 +31,10 @@ type run struct {
 	cmd    *exec.Cmd
 	stdout *os.File // read end of the process's stdout
 	stderr *tailBuffer
-	msgs   chan message.Message
+	events chan message.Event
 
 	accepted chan struct{} // closed when the prompt was echoed
-	readDone chan struct{} // closed when stdout is exhausted and msgs closed
+	readDone chan struct{} // closed when stdout is exhausted and events closed
 	exited   chan struct{} // closed when the process was reaped
 	waitErr  error         // the process's exit; read after exited
 
@@ -93,7 +93,7 @@ func startRun(ctx context.Context, h *Harness, args []string, prompt string) (*r
 		h:          h,
 		cmd:        cmd,
 		stderr:     &tailBuffer{max: 4096},
-		msgs:       make(chan message.Message),
+		events:     make(chan message.Event),
 		accepted:   make(chan struct{}),
 		readDone:   make(chan struct{}),
 		exited:     make(chan struct{}),
@@ -144,7 +144,7 @@ func startRun(ctx context.Context, h *Harness, args []string, prompt string) (*r
 // abort kills a run that was never accepted and waits for it to end.
 func (r *run) abort() {
 	r.Kill()
-	for range r.msgs {
+	for range r.events {
 	}
 	<-r.exited
 }
@@ -169,13 +169,13 @@ func (r *run) reap() {
 	}
 }
 
-// read translates stdout until it is exhausted, then closes msgs once the
+// read translates stdout until it is exhausted, then closes events once the
 // process was reaped.
 func (r *run) read() {
 	defer func() {
 		r.stdout.Close()
 		<-r.exited
-		close(r.msgs)
+		close(r.events)
 		close(r.readDone)
 	}()
 	translator := newTranslator()
@@ -222,19 +222,19 @@ func (r *run) handle(translator *translator, line []byte) error {
 			return fmt.Errorf("claude: encode turn reference: %w", err)
 		}
 		r.ref.Data = data
-		msgs, err := translator.streamLine(line)
+		events, err := translator.streamLine(line)
 		close(r.accepted)
-		r.forward(msgs)
+		r.forward(events)
 		return err
 	}
-	msgs, err := translator.streamLine(line)
-	r.forward(msgs)
+	events, err := translator.streamLine(line)
+	r.forward(events)
 	return err
 }
 
-func (r *run) forward(msgs []message.Message) {
-	for _, m := range msgs {
-		r.msgs <- m
+func (r *run) forward(events []message.Event) {
+	for _, e := range events {
+		r.events <- e
 	}
 }
 
@@ -267,7 +267,7 @@ func (r *run) closeStdin() {
 func (r *run) Ref() harness.Ref { return r.ref }
 
 // Messages implements harness.Run.
-func (r *run) Messages() <-chan message.Message { return r.msgs }
+func (r *run) Events() <-chan message.Event { return r.events }
 
 // Interrupt implements harness.Run: once, without blocking, it lists the
 // process groups of the harness's descendants while the harness still

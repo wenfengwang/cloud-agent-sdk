@@ -80,12 +80,14 @@ func (h *fakeHarness) closeCount() int {
 	return h.closes
 }
 
-// fakeRun emits msgs, then either finishes or, with hold, waits for
-// Interrupt (unless ignoreInterrupt) or Kill.
+// fakeRun emits events, or msgs as message events when events is nil, then
+// either finishes or, with hold, waits for Interrupt (unless
+// ignoreInterrupt) or Kill.
 type fakeRun struct {
 	ref             harness.Ref
 	finalRef        harness.Ref
 	msgs            []message.Message
+	events          []message.Event
 	pace            time.Duration
 	hold            bool
 	ignoreInterrupt bool
@@ -93,7 +95,7 @@ type fakeRun struct {
 	waitErr         error
 	startErr        error
 
-	ch          chan message.Message
+	ch          chan message.Event
 	interruptCh chan struct{}
 	killCh      chan struct{}
 	interruptMu sync.Once
@@ -106,7 +108,7 @@ type fakeRun struct {
 }
 
 func (r *fakeRun) start() {
-	r.ch = make(chan message.Message)
+	r.ch = make(chan message.Event)
 	r.interruptCh = make(chan struct{})
 	r.killCh = make(chan struct{})
 	go r.loop()
@@ -115,7 +117,13 @@ func (r *fakeRun) start() {
 func (r *fakeRun) loop() {
 	defer close(r.ch)
 	r.err = r.waitErr
-	for _, m := range r.msgs {
+	events := r.events
+	if events == nil {
+		for i := range r.msgs {
+			events = append(events, message.Event{Message: &r.msgs[i]})
+		}
+	}
+	for _, e := range events {
 		if r.pace > 0 {
 			select {
 			case <-time.After(r.pace):
@@ -125,7 +133,7 @@ func (r *fakeRun) loop() {
 			}
 		}
 		select {
-		case r.ch <- m:
+		case r.ch <- e:
 		case <-r.killCh:
 			r.err = errors.New("fake: killed")
 			return
@@ -146,8 +154,8 @@ func (r *fakeRun) loop() {
 	}
 }
 
-func (r *fakeRun) Ref() harness.Ref                 { return r.ref }
-func (r *fakeRun) Messages() <-chan message.Message { return r.ch }
+func (r *fakeRun) Ref() harness.Ref             { return r.ref }
+func (r *fakeRun) Events() <-chan message.Event { return r.ch }
 
 func (r *fakeRun) Interrupt() {
 	r.interrupts.Add(1)

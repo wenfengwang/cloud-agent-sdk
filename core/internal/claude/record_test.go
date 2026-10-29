@@ -3,9 +3,11 @@ package claude
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -80,7 +82,11 @@ func record(t *testing.T, s testenv.Scenario) {
 		}
 		killer := time.AfterFunc(5*time.Minute, run.Kill)
 		stopped := false
-		for m := range run.Messages() {
+		for e := range run.Events() {
+			if e.Message == nil {
+				continue
+			}
+			m := *e.Message
 			if !stopped && s.TerminateWhen != nil && s.TerminateWhen(m) {
 				stopped = true
 				run.Interrupt()
@@ -137,10 +143,60 @@ func record(t *testing.T, s testenv.Scenario) {
 			Scenario: s.Name,
 			Prompts:  s.Prompts,
 		},
+		Deltas:  deltaCodec{},
 		Traffic: rec.segments,
 		Home:    files,
 	}
 	if err := testenv.WriteFixture(filepath.Join("testdata", s.Name), fixture, scrub); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// deltaCodec reads the text_delta stream_event lines of Claude Code traffic
+// for stream-aware scrubbing. A delta names only its block index; the
+// stream is the API message the preceding message_start opened.
+type deltaCodec struct{}
+
+func (deltaCodec) Streams(lines []fakeharness.TrafficLine) []string {
+	out := make([]string, len(lines))
+	streaming := map[string]string{} // parent -> API message ID
+	for i, l := range lines {
+		var e entry
+		if l.Dir != fakeharness.DirRecv || json.Unmarshal(l.Line, &e) != nil || e.Type != "stream_event" || e.Event == nil {
+			continue
+		}
+		parent := ""
+		if e.ParentToolUseID != nil {
+			parent = *e.ParentToolUseID
+		}
+		switch {
+		case e.Event.Type == "message_start":
+			streaming[parent] = e.Event.Message.ID
+		case e.Event.Type == "content_block_delta" && e.Event.Delta.Type == "text_delta":
+			out[i] = parent + "/" + streaming[parent] + ":" + strconv.Itoa(e.Event.Index)
+		}
+	}
+	return out
+}
+
+func (deltaCodec) Text(line []byte) string {
+	var e entry
+	if json.Unmarshal(line, &e) != nil || e.Event == nil {
+		return ""
+	}
+	return e.Event.Delta.Text
+}
+
+func (deltaCodec) SetText(line []byte, text string) ([]byte, error) {
+	var m map[string]any
+	if err := json.Unmarshal(line, &m); err != nil {
+		return nil, err
+	}
+	ev, _ := m["event"].(map[string]any)
+	delta, ok := ev["delta"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("claude: stream_event without a delta")
+	}
+	delta["text"] = text
+	return json.Marshal(m)
 }

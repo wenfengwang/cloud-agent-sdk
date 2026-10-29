@@ -1,0 +1,5 @@
+out
+.next
+node_modules
+pnpm-lock.yaml
+next-env.d.ts

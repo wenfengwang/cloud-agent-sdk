@@ -2,7 +2,7 @@
 title: "Web App"
 description: "One Next.js and shadcn/ui single-page app, statically exported and served by the backend, that drives Claude Code and Codex sessions side by side through one SSE connection per tab, folds messages into a shared conversation model, and shows every SDK gap as a disabled control with its reason."
 number: "003"
-status: draft
+status: current
 supersedes: "002"
 related: ["001"]
 last_verified: "2026-10-28"
@@ -12,7 +12,7 @@ last_verified: "2026-10-28"
 
 ## Status
 
-Draft. Not implemented. The backend API this app consumes is owned by [design 001](001-architecture.md#api-surface).
+Current. Implemented in `web/` and verified by its vitest suite and by hand against the pinned CLIs through the backend. The backend API this app consumes is owned by [design 001](001-architecture.md#api-surface).
 
 ## Why
 
@@ -48,7 +48,7 @@ flowchart TB
 | Decision | Choice |
 |---|---|
 | Stack | Next.js (App Router), React, TypeScript (strict), Tailwind CSS, shadcn/ui; pnpm, prettier, eslint, vitest |
-| Dependencies | shadcn/ui and its Radix primitives, `lucide-react`, `sonner` for toasts, `react-markdown` with `remark-gfm`, `diff` for line diffs; nothing else without a design change |
+| Dependencies | shadcn/ui and what it installs (Radix primitives, `cmdk`, `cn`, `class-variance-authority`, `tw-animate-css`), `lucide-react`, `sonner` for toasts, `react-markdown` with `remark-gfm`, `diff` for line diffs; nothing else without a design change |
 | Rendering | Every page is a client component; `output: "export"` with `trailingSlash: true` produces static files the backend serves. No server components fetch data, and no Next.js server runs in production |
 | Development | `next dev` on `http://localhost:3000` rewrites `/api/*` to the backend at `http://127.0.0.1:8787`; the backend allows that origin through `--dev-origin`. Rewrites are configured only in development, because a static export has no server |
 | Routing | `/` is home, `/?session=<id>` a conversation, `/settings` settings. Search parameters instead of path segments, because a static export cannot generate a page per session ID |
@@ -114,7 +114,7 @@ Rules:
 
 ### Tool card
 
-A `ToolCard` is a collapsible row: tool icon, label, target in monospace muted text, and a status at the right (spinner, check, red cross, or "Interrupted"). Expanded, it shows "Input" and "Output" sections in monospace, capped at 320px with internal scroll.
+A `ToolCard` is a collapsible row: tool icon, label, target in monospace muted text (paths relative to the session's WorkDir), and a status at the right (spinner, check, red cross, or "Interrupted"). Expanded, it shows "Input" and "Output" sections in monospace, capped at 320px with internal scroll.
 
 | Tool | Label | Target | Expanded body |
 |---|---|---|---|
@@ -134,12 +134,12 @@ A `truncated` message shows a "Truncated" badge on its card or text.
 
 ### Other pieces
 
-- **Markdown** renders assistant text with GFM; links open in a new tab with `rel="noopener noreferrer"`; raw HTML is never rendered; code blocks are monospace with a copy button.
+- **Markdown** renders assistant text with GFM; web links open in a new tab with `rel="noopener noreferrer"`, and links to local files render as plain text; raw HTML is never rendered; code blocks are monospace with a copy button.
 - **Working indicator**: a spinner, "Working", and the elapsed time since `startedAt`; it is the only progress signal between complete messages (gap `streaming-text`).
 - **Turn end line**: the duration from `startedAt` to `endedAt`, with a tooltip of the non-zero usage counts ("1.8k in · 412 out · 20k cache read"). `terminated` and `cancelled` read "Stopped", `closed` "Session closed"; `failed` shows the error with "Retry", which sends the turn's prompt again.
-- **ChangesPanel** is a right panel opened from the conversation header's `+N -M` button: a file list with status and counts and the selected file's diff, from `GET .../changes`, refreshed after each `turn.ended` (gap `changed-files`). Outside git it shows "Changes need a git repository"; a session without a worktree notes "Includes manual edits made in this directory".
+- **ChangesPanel** is a right panel opened from the conversation header's `+N -M` button, which appears once the session has changed a file: a file list with status and counts and the selected file's diff, from `GET .../changes`, refreshed after each `turn.ended` (gap `changed-files`). Outside git it shows "Changes need a git repository"; a session without a worktree notes "Includes manual edits made in this directory".
 - **Toasts** report results such as "Worktree kept: uncommitted changes" after a delete.
-- **Harness notice** above the composer when the selected harness is unavailable or its version differs from a non-empty `pinnedVersion`, with the `loginHint` and a copy button. Send is disabled while the harness is unavailable.
+- **Harness notice** above the composer when the selected harness is unavailable or its version differs from a non-empty `pinnedVersion`, with the `loginHint` and a copy button. Send is disabled while the harness is unavailable. Below the home composer, a muted line shows the `loginHint` with a copy button, because an isolated home needs one login before its first session.
 
 ## Layout
 

@@ -142,7 +142,9 @@ Every non-2xx response has the body `{"error": {"code": "<code>", "message": "<h
 | Situation | Status | `code` |
 |---|---|---|
 | Malformed body, empty or whitespace-only prompt, unknown harness, relative or missing WorkDir, WorkDir not a directory, worktree requested outside a git repository | 400 | `invalid_request` |
+| `Host` is not a loopback name, or `Origin` is present and not allowed ([Safety](#safety)) | 403 | `forbidden` |
 | Unknown session, turn, or event connection | 404 | `not_found` |
+| A mutating request without `Content-Type: application/json` | 415 | `unsupported_media_type` |
 | A turn is starting or running (backend state, or `ErrTurnInProgress`) | 409 | `turn_in_progress` |
 | The session is `closing`, or `Turn` returned `ErrClosed` | 409 | `session_closed` |
 | Stop was requested while the turn was starting, and `Turn` returned an error | 409 | `start_cancelled` |

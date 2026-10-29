@@ -2,17 +2,17 @@
 title: "Demo Architecture"
 description: "A localhost-only gin backend that holds one cloudagent AgentRuntime per session in memory, records each turn's turn.Messages() once, multiplexes recorded messages and session changes over one SSE stream per browser tab, and surfaces every SDK v1 gap as a named capability."
 number: "001"
-status: draft
+status: current
 supersedes: ""
 related: ["002"]
-last_verified: "2026-10-14"
+last_verified: "2026-10-28"
 ---
 
 # 001 — Demo Architecture
 
 ## Status
 
-Draft. Not implemented. The frontend is owned by [design 002](002-ui-shells.md).
+Current. The backend described here is implemented and verified by the tests in [Testing](#testing), including the real harness smoke test. The frontend is owned by [design 002](002-ui-shells.md).
 
 ## Why
 

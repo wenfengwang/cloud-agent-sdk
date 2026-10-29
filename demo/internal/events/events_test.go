@@ -423,3 +423,71 @@ func waitRecorded(t *testing.T, store *session.Store, sid, tid string, n int) {
 		time.Sleep(time.Millisecond)
 	}
 }
+
+type gotPartial struct {
+	TurnID          string `json:"turnId"`
+	StreamID        string `json:"streamId"`
+	ParentToolUseID string `json:"parentToolUseId"`
+	Text            string `json:"text"`
+}
+
+func (c *client) expectPartial() gotPartial {
+	c.t.Helper()
+	ev := c.expect("message.partial")
+	var p gotPartial
+	if err := json.Unmarshal([]byte(ev.data), &p); err != nil {
+		c.t.Fatal(err)
+	}
+	return p
+}
+
+func TestPartialSnapshots(t *testing.T) {
+	f := newFixture(t)
+	sid, tid, turn := f.startTurn()
+	c := f.connect()
+	if err := f.hub.Subscribe(c.id, sid, tid, ""); err != nil {
+		t.Fatal(err)
+	}
+	turn.EmitDelta("s1", "Hel")
+	if p := c.expectPartial(); p.TurnID != tid || p.StreamID != "s1" || p.Text != "Hel" {
+		t.Fatalf("first partial = %+v", p)
+	}
+	turn.EmitDelta("s1", "lo")
+	if p := c.expectPartial(); p.Text != "Hello" {
+		t.Fatalf("second partial = %+v, want the accumulated text", p)
+	}
+	turn.EmitCompleting(sdk.Message{Kind: sdk.KindAssistant, Assistant: &sdk.Text{Text: "Hello"}}, "s1")
+	m := c.expectMessage()
+	if m.Message.StreamID != "s1" || *m.Message.Text != "Hello" {
+		t.Fatalf("completing message = %+v", m.Message)
+	}
+	turn.End(sdk.Result{}, nil)
+	// Nothing about s1 follows its completing message.
+	c.expect("turn.ended")
+}
+
+func TestLateSubscriberGetsOpenStream(t *testing.T) {
+	f := newFixture(t)
+	sid, tid, turn := f.startTurn()
+	turn.Emit(sdk.Message{Kind: sdk.KindUser, User: &sdk.Text{Text: "go"}})
+	turn.EmitDelta("s1", "Hel")
+	turn.EmitDelta("s1", "lo")
+	rec, _ := f.store.Record(sid, tid)
+	deadline := time.Now().Add(wait)
+	for len(rec.Partials()) == 0 || rec.Partials()[0].Text != "Hello" {
+		if time.Now().After(deadline) {
+			t.Fatal("stream not recorded")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	c := f.connect()
+	if err := f.hub.Subscribe(c.id, sid, tid, ""); err != nil {
+		t.Fatal(err)
+	}
+	c.expectMessage()
+	// The open stream arrives as one snapshot of its current text.
+	if p := c.expectPartial(); p.Text != "Hello" {
+		t.Fatalf("partial = %+v, want Hello", p)
+	}
+}

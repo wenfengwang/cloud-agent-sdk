@@ -1,4 +1,4 @@
-import type { Message, SessionDetail, SessionSummary, TurnSummary } from "@/lib/api/types";
+import type { Message, PartialText, SessionDetail, SessionSummary, TurnSummary } from "@/lib/api/types";
 
 export interface ConversationState {
   status: "loading" | "ready" | "notFound" | "error";
@@ -6,13 +6,17 @@ export interface ConversationState {
   turns: TurnSummary[];
   messages: Record<string, Message[]>;
   streamErrors: Record<string, string>;
+  /** Open delta streams per turn, in the order they opened. */
+  partials: Record<string, PartialText[]>;
   /** The prompt being started, shown optimistically until Turn returns. */
-  pending: { prompt: string } | null;
+  pending: { prompt: string; sentAt?: number } | null;
   sendError: string | null;
   /** A prompt to put back into the composer after a failed start. */
   restoredPrompt: string | null;
   /** The turn this tab started, until its turn.ended arrives. */
   awaitingEnd: string | null;
+  /** When this tab sent the prompt of each turn it started, in epoch ms. */
+  sentAt: Record<string, number>;
 }
 
 export const initialConversation: ConversationState = {
@@ -21,10 +25,12 @@ export const initialConversation: ConversationState = {
   turns: [],
   messages: {},
   streamErrors: {},
+  partials: {},
   pending: null,
   sendError: null,
   restoredPrompt: null,
   awaitingEnd: null,
+  sentAt: {},
 };
 
 export type ConversationAction =
@@ -34,9 +40,10 @@ export type ConversationAction =
   | { type: "loadFailed"; message: string }
   | { type: "historyLoaded"; turnId: string; messages: Message[]; error: string | null }
   | { type: "message"; turnId: string; message: Message }
+  | { type: "partial"; turnId: string; partial: PartialText }
   | { type: "streamError"; turnId: string; message: string }
   | { type: "turnEnded"; turn: TurnSummary }
-  | { type: "sendStarted"; prompt: string }
+  | { type: "sendStarted"; prompt: string; sentAt?: number }
   | { type: "sendSucceeded"; turn: TurnSummary }
   | { type: "sendFailed"; prompt: string; message: string | null }
   | { type: "promptRestored" };
@@ -78,22 +85,42 @@ export function conversationReducer(state: ConversationState, action: Conversati
     case "message": {
       const list = state.messages[action.turnId] ?? [];
       if (list.some((m) => m.id === action.message.id)) return state;
-      return { ...state, messages: { ...state.messages, [action.turnId]: [...list, action.message] } };
+      const next = { ...state, messages: { ...state.messages, [action.turnId]: [...list, action.message] } };
+      const stream = action.message.streamId;
+      if (!stream) return next;
+      const open = (state.partials[action.turnId] ?? []).filter((p) => p.streamId !== stream);
+      return { ...next, partials: { ...state.partials, [action.turnId]: open } };
+    }
+    case "partial": {
+      // A snapshot that arrives after its completing message is stale.
+      const done = (state.messages[action.turnId] ?? []).some((m) => m.streamId === action.partial.streamId);
+      if (done) return state;
+      const open = state.partials[action.turnId] ?? [];
+      const i = open.findIndex((p) => p.streamId === action.partial.streamId);
+      const next = i < 0 ? [...open, action.partial] : open.map((p, j) => (j === i ? action.partial : p));
+      return { ...state, partials: { ...state.partials, [action.turnId]: next } };
     }
     case "streamError":
       return { ...state, streamErrors: { ...state.streamErrors, [action.turnId]: action.message } };
     case "turnEnded":
       return {
         ...state,
+        partials: { ...state.partials, [action.turn.id]: [] },
         turns: upsertTurn(state.turns, action.turn),
         awaitingEnd: state.awaitingEnd === action.turn.id ? null : state.awaitingEnd,
       };
     case "sendStarted":
-      return { ...state, pending: { prompt: action.prompt }, sendError: null, restoredPrompt: null };
+      return {
+        ...state,
+        pending: { prompt: action.prompt, ...(action.sentAt !== undefined ? { sentAt: action.sentAt } : {}) },
+        sendError: null,
+        restoredPrompt: null,
+      };
     case "sendSucceeded":
       return {
         ...state,
         pending: null,
+        sentAt: state.pending?.sentAt ? { ...state.sentAt, [action.turn.id]: state.pending.sentAt } : state.sentAt,
         turns: upsertTurn(state.turns, action.turn),
         // The turn may already have ended through the event stream.
         awaitingEnd: state.turns.some((t) => t.id === action.turn.id && t.status !== "running") ? null : action.turn.id,

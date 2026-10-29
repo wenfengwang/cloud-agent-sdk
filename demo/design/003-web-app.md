@@ -77,7 +77,7 @@ The backend serves `web/out/`; for `/settings/` it serves `settings/index.html`,
 
 `AppProvider` loads `GET /api/config` and `GET /api/sessions`, and owns the tab's `EventsClient`. It applies `session.upserted` and `session.deleted` to the session list.
 
-`EventsClient` opens one `EventSource` on `/api/events` and waits for `hello` to learn its connection ID. `subscribe(sessionId, turnId, handlers, lastMessageId)` posts the subscription and routes `message`, `stream.error`, and `turn.ended` for that `turnId` to the handlers. On every later `hello` (a reconnect) it reposts every live subscription with the last message ID its handler has seen, and the provider refetches the session list. A subscription ends after `turn.ended`. The server sends `retry: 3000`; when the `EventSource` is closed or has been disconnected for more than 3 seconds, a banner reads "Connection to the backend lost. Reconnecting..." with a "Reconnect" button.
+`EventsClient` opens one `EventSource` on `/api/events` and waits for `hello` to learn its connection ID. `subscribe(sessionId, turnId, handlers, lastMessageId)` posts the subscription and routes `message`, `message.partial`, `stream.error`, and `turn.ended` for that `turnId` to the handlers. On every later `hello` (a reconnect) it reposts every live subscription with the last message ID its handler has seen, and the provider refetches the session list. A subscription ends after `turn.ended`. The server sends `retry: 3000`; when the `EventSource` is closed or has been disconnected for more than 3 seconds, a banner reads "Connection to the backend lost. Reconnecting..." with a "Reconnect" button.
 
 `useConversation(sessionId)` loads `SessionDetail`, then `GET .../messages` for every ended turn, and subscribes to the `activeTurnId` if there is one. When `session.upserted` brings an `activeTurnId` it does not know (a turn started in another tab), it refetches `SessionDetail` and subscribes. An unknown session shows "Session not found" with the `history` reason, because a restarted backend forgets sessions.
 
@@ -98,6 +98,7 @@ A prompt starting with "/" is sent as plain text; while the input starts with "/
 | Item | Built from |
 |---|---|
 | `user` | The `user` message, or the optimistic prompt until it arrives |
+| streamed text | An open top-level stream of `message.partial`, after the turn's items |
 | `assistant` | An `assistant` message |
 | `reasoning` | A `reasoning` message; empty text renders as a collapsed "Thought" row with no body |
 | `tool` | A `tool_call` merged with the `tool_result` whose `callId` matches; a result with no call becomes a tool item on its own |
@@ -135,7 +136,8 @@ A `truncated` message shows a "Truncated" badge on its card or text.
 ### Other pieces
 
 - **Markdown** renders assistant text with GFM; web links open in a new tab with `rel="noopener noreferrer"`, and links to local files render as plain text; raw HTML is never rendered; code blocks are monospace with a copy button.
-- **Working indicator**: a spinner, "Working", and the elapsed time since `startedAt`; it is the only progress signal between complete messages (gap `streaming-text`).
+- **Working indicator**: a spinner, "Working", and the elapsed time since the prompt was sent, shown while the turn starts or runs. Between the send and the harness accepting the prompt, the optimistic prompt and this indicator are all there is to show: Claude Code accepts a prompt only when the model starts to answer.
+- **Streamed text**: the `message.partial` text of an open top-level stream renders as assistant markdown with a caret after the turn's items, and is replaced by the message whose `streamId` completes it; open streams are dropped at `turn.ended`. Streams inside a subagent are not shown until their message completes.
 - **Turn end line**: the duration from `startedAt` to `endedAt`, with a tooltip of the non-zero usage counts ("1.8k in · 412 out · 20k cache read"). `terminated` and `cancelled` read "Stopped", `closed` "Session closed"; `failed` shows the error with "Retry", which sends the turn's prompt again.
 - **ChangesPanel** is a right panel opened from the conversation header's `+N -M` button, which appears once the session has changed a file: a file list with status and counts and the selected file's diff, from `GET .../changes`, refreshed after each `turn.ended` (gap `changed-files`). Outside git it shows "Changes need a git repository"; a session without a worktree notes "Includes manual edits made in this directory".
 - **Toasts** report results such as "Worktree kept: uncommitted changes" after a delete.

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventsClient, type EventSourceLike, type TurnHandlers } from "@/lib/api/events";
-import type { Message, TurnSummary } from "@/lib/api/types";
+import type { Message, PartialText, TurnSummary } from "@/lib/api/types";
 
 class FakeSource implements EventSourceLike {
   static readonly CLOSED = 2;
@@ -36,9 +36,13 @@ function setup() {
   return { client, sources, subscribe, source: () => sources[sources.length - 1] };
 }
 
-function handlers(last = ""): TurnHandlers & { messages: Message[]; ended: TurnSummary[]; errors: string[] } {
+function handlers(
+  last = "",
+): TurnHandlers & { messages: Message[]; ended: TurnSummary[]; errors: string[]; partials: PartialText[] } {
   const h = {
     messages: [] as Message[],
+    partials: [] as PartialText[],
+    onPartial: (p: PartialText) => h.partials.push(p),
     ended: [] as TurnSummary[],
     errors: [] as string[],
     onMessage: (m: Message) => h.messages.push(m),
@@ -82,6 +86,16 @@ describe("EventsClient", () => {
     expect(a.messages.map((m) => m.id)).toEqual(["m1"]);
     expect(b.messages.map((m) => m.id)).toEqual(["m2"]);
     expect(b.errors).toEqual(["unreadable"]);
+  });
+
+  it("routes streamed text by turnId", async () => {
+    const { client, source } = setup();
+    const a = handlers();
+    source().emit("hello", { connectionId: "c1" });
+    client.subscribe("s1", "t1", a);
+    source().emit("message.partial", { turnId: "t1", streamId: "x", text: "Hel" });
+    source().emit("message.partial", { turnId: "t2", streamId: "y", text: "other" });
+    expect(a.partials).toEqual([{ turnId: "t1", streamId: "x", text: "Hel" }]);
   });
 
   it("ends a subscription after turn.ended", async () => {

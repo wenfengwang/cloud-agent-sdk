@@ -125,7 +125,8 @@ type Turn struct {
 	TerminateErr error
 
 	mu        sync.Mutex
-	messages  []sdk.Message
+	events    []sdk.Event
+	messages  int
 	iterErr   error
 	ended     bool
 	result    sdk.Result
@@ -150,17 +151,33 @@ func newTurn(ctx context.Context, id, prompt string) *Turn {
 func (t *Turn) ID() string { return t.id }
 
 // Emit appends a message with the next ID.
-func (t *Turn) Emit(m sdk.Message) {
+func (t *Turn) Emit(m sdk.Message) { t.EmitCompleting(m, "") }
+
+// EmitCompleting appends a message that completes the delta stream named
+// stream; an empty stream emits a message that was not streamed.
+func (t *Turn) EmitCompleting(m sdk.Message, stream string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.ended {
 		return
 	}
+	t.messages++
 	if m.ID == "" {
-		m.ID = fmt.Sprintf("%s-msg-%d", t.id, len(t.messages)+1)
+		m.ID = fmt.Sprintf("%s-msg-%d", t.id, t.messages)
 	}
 	m.TurnID = t.id
-	t.messages = append(t.messages, m)
+	t.events = append(t.events, sdk.Event{Message: &m, StreamID: stream})
+	t.wake()
+}
+
+// EmitDelta appends a delta of assistant text to stream.
+func (t *Turn) EmitDelta(stream, text string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.ended {
+		return
+	}
+	t.events = append(t.events, sdk.Event{Delta: &sdk.Delta{StreamID: stream, TurnID: t.id, Kind: sdk.KindAssistant, Text: text}})
 	t.wake()
 }
 
@@ -169,7 +186,7 @@ func (t *Turn) EmitText(text string) {
 	t.Emit(sdk.Message{Kind: sdk.KindAssistant, Assistant: &sdk.Text{Text: text}})
 }
 
-// FailIteration makes Messages end with err after the messages so far.
+// FailIteration makes Events end with err after the events so far.
 func (t *Turn) FailIteration(err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -199,16 +216,16 @@ func (t *Turn) wake() {
 	t.changed = make(chan struct{})
 }
 
-// Messages implements sdk.Turn.
-func (t *Turn) Messages() iter.Seq2[sdk.Message, error] {
-	return func(yield func(sdk.Message, error) bool) {
+// Events implements sdk.Turn.
+func (t *Turn) Events() iter.Seq2[sdk.Event, error] {
+	return func(yield func(sdk.Event, error) bool) {
 		for i := 0; ; {
 			t.mu.Lock()
-			pending := t.messages[i:]
+			pending := t.events[i:]
 			iterErr, ended, changed := t.iterErr, t.ended, t.changed
 			t.mu.Unlock()
-			for _, m := range pending {
-				if !yield(m, nil) {
+			for _, e := range pending {
+				if !yield(e, nil) {
 					return
 				}
 				i++
@@ -217,7 +234,7 @@ func (t *Turn) Messages() iter.Seq2[sdk.Message, error] {
 				continue
 			}
 			if iterErr != nil {
-				yield(sdk.Message{}, iterErr)
+				yield(sdk.Event{}, iterErr)
 				return
 			}
 			if ended {

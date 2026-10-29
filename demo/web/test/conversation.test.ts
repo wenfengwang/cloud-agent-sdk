@@ -134,4 +134,47 @@ describe("conversation reducer", () => {
     const s = run(initialConversation, { type: "loaded", detail: detail() });
     expect(isLocked(s, summary({ status: "closing" }))).toBe(true);
   });
+
+  it("replaces streamed text with the message that completes it", () => {
+    let s = run(
+      initialConversation,
+      { type: "loaded", detail: detail([turn("t1")]) },
+      { type: "partial", turnId: "t1", partial: { turnId: "t1", streamId: "x", text: "Hel" } },
+      { type: "partial", turnId: "t1", partial: { turnId: "t1", streamId: "x", text: "Hello" } },
+    );
+    expect(s.partials.t1).toEqual([{ turnId: "t1", streamId: "x", text: "Hello" }]);
+    s = run(s, { type: "message", turnId: "t1", message: { ...msg("a"), text: "Hello", streamId: "x" } });
+    expect(s.partials.t1 ?? []).toEqual([]);
+    expect(s.messages.t1.map((m) => m.id)).toEqual(["a"]);
+  });
+
+  it("ignores streamed text that arrives after its message", () => {
+    const s = run(
+      initialConversation,
+      { type: "loaded", detail: detail([turn("t1")]) },
+      { type: "message", turnId: "t1", message: { ...msg("a"), streamId: "x" } },
+      { type: "partial", turnId: "t1", partial: { turnId: "t1", streamId: "x", text: "late" } },
+    );
+    expect(s.partials.t1 ?? []).toEqual([]);
+  });
+
+  it("drops open streams when the turn ends", () => {
+    const s = run(
+      initialConversation,
+      { type: "loaded", detail: detail([turn("t1")]) },
+      { type: "partial", turnId: "t1", partial: { turnId: "t1", streamId: "x", text: "cut" } },
+      { type: "turnEnded", turn: turn("t1", "terminated") },
+    );
+    expect(s.partials.t1 ?? []).toEqual([]);
+  });
+
+  it("keeps the send time of a pending prompt", () => {
+    const s = run(
+      initialConversation,
+      { type: "loaded", detail: detail() },
+      { type: "sendStarted", prompt: "go", sentAt: 1000 },
+    );
+    expect(s.pending).toEqual({ prompt: "go", sentAt: 1000 });
+    expect(run(s, { type: "sendSucceeded", turn: turn("t1") }).sentAt).toEqual({ t1: 1000 });
+  });
 });

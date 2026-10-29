@@ -1,4 +1,4 @@
-import type { Message, SessionSummary, TurnSummary } from "./types";
+import type { Message, PartialText, SessionSummary, TurnSummary } from "./types";
 
 /** The part of EventSource the client uses, so tests can inject a fake. */
 export interface EventSourceLike {
@@ -13,6 +13,7 @@ const CLOSED = 2;
 /** Receives one turn's events. lastMessageId is the replay position. */
 export interface TurnHandlers {
   onMessage(message: Message): void;
+  onPartial?(partial: PartialText): void;
   onStreamError(message: string): void;
   onEnded(turn: TurnSummary): void;
   lastMessageId(): string;
@@ -151,6 +152,10 @@ export class EventsClient {
     on("message", (data) => {
       const { turnId, message } = data as { turnId: string; message: Message };
       this.subs.get(turnId)?.handlers.onMessage(message);
+    });
+    on("message.partial", (data) => {
+      const partial = data as PartialText;
+      this.subs.get(partial.turnId)?.handlers.onPartial?.(partial);
     });
     on("stream.error", (data) => {
       const { turnId, message } = data as { turnId: string; message: string };

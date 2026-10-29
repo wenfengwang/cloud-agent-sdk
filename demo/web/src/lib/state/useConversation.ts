@@ -27,6 +27,7 @@ export function useConversation(sessionId: string) {
       if (subscriptions.current.has(turnId)) return;
       const stop = events.subscribe(sessionId, turnId, {
         onMessage: (message) => dispatch({ type: "message", turnId, message }),
+        onPartial: (partial) => dispatch({ type: "partial", turnId, partial }),
         onStreamError: (message) => dispatch({ type: "streamError", turnId, message }),
         onEnded: (turn) => {
           subscriptions.current.delete(turnId);
@@ -109,7 +110,7 @@ export function useConversation(sessionId: string) {
 
   const send = useCallback(
     async (prompt: string) => {
-      dispatch({ type: "sendStarted", prompt });
+      dispatch({ type: "sendStarted", prompt, sentAt: Date.now() });
       let turn: TurnSummary;
       try {
         turn = await api.startTurn(sessionId, prompt);

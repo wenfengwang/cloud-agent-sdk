@@ -48,6 +48,7 @@ type Message struct {
 	Text            *string         `json:"text,omitempty"`
 	ToolCall        *ToolCall       `json:"toolCall,omitempty"`
 	ToolResult      *ToolResult     `json:"toolResult,omitempty"`
+	StreamID        string          `json:"streamId,omitempty"` // the delta stream this message completes
 	Truncated       bool            `json:"truncated"`
 	Raw             json.RawMessage `json:"raw,omitempty"`
 }

@@ -612,3 +612,49 @@ func splitLines(s string) []string {
 	}
 	return append(lines, s[start:])
 }
+
+func partialTexts(rec *Record) map[string]string {
+	out := map[string]string{}
+	for _, p := range rec.Partials() {
+		out[p.StreamID] = p.Text
+	}
+	return out
+}
+
+func TestStreamedText(t *testing.T) {
+	h := newHarness(t)
+	d := h.create(wire.CreateSession{})
+	ts, _ := h.store.StartTurn(d.ID, "go")
+	turn := h.runtime(0).Turns()[0]
+	rec, _ := h.store.Record(d.ID, ts.ID)
+
+	turn.EmitDelta("s1", "Hel")
+	turn.EmitDelta("s1", "lo")
+	eventually(t, "streamed text", func() bool { return partialTexts(rec)["s1"] == "Hello" })
+	if msgs, _, _ := rec.Since(0); len(msgs) != 0 {
+		t.Fatalf("deltas were recorded as messages: %+v", msgs)
+	}
+
+	turn.EmitCompleting(sdk.Message{Kind: sdk.KindAssistant, Assistant: &sdk.Text{Text: "Hello"}}, "s1")
+	eventually(t, "completing message", func() bool { msgs, _, _ := rec.Since(0); return len(msgs) == 1 })
+	msgs, _, _ := rec.Since(0)
+	if msgs[0].StreamID != "s1" {
+		t.Errorf("message StreamID = %q, want s1", msgs[0].StreamID)
+	}
+	if len(rec.Partials()) != 0 {
+		t.Errorf("open streams after completion: %+v", rec.Partials())
+	}
+
+	// A stream the turn leaves incomplete is dropped at the end.
+	turn.EmitDelta("s2", "cut ")
+	eventually(t, "second stream", func() bool { return partialTexts(rec)["s2"] == "cut " })
+	turn.End(sdk.Result{}, sdk.ErrTerminated)
+	h.waitStatus(d.ID, "idle")
+	if len(rec.Partials()) != 0 {
+		t.Errorf("open streams after the turn: %+v", rec.Partials())
+	}
+	list, err := h.store.Messages(d.ID, ts.ID)
+	if err != nil || len(list.Messages) != 1 || list.Messages[0].StreamID != "" {
+		t.Errorf("history = %+v, %v; want one message without streamId", list, err)
+	}
+}

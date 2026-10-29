@@ -207,3 +207,21 @@
     background-position: -100% 0;
   }
 }
+
+/* A caret after text that is still being generated. */
+.streaming .markdown > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  opacity: 0.55;
+  animation: caret 1s steps(2, start) infinite;
+}
+@keyframes caret {
+  to {
+    visibility: hidden;
+  }
+}

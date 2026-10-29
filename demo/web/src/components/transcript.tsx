@@ -13,11 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { HarnessId, Message, TurnSummary } from "@/lib/api/types";
+import type { Message, PartialText, TurnSummary } from "@/lib/api/types";
 import { between, formatDuration, formatUsage } from "@/lib/state/format";
 import { buildItems, type Item, type TextItem } from "@/lib/state/model";
 import { cn } from "@/lib/utils";
-import { harnessLabel } from "./harness-badge";
 import { Markdown } from "./markdown";
 import { ToolCard } from "./tool-card";
 
@@ -106,13 +105,23 @@ function useNow(active: boolean): number {
   return now;
 }
 
-export function WorkingIndicator({ startedAt, label = "Working" }: { startedAt?: string; label?: string }) {
+/** Shown while a turn starts or runs, timed from when the prompt was sent. */
+export function WorkingIndicator({ since }: { since?: number }) {
   const now = useNow(true);
   return (
     <div className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
       <Loader2Icon className="size-3.5 animate-spin" />
-      <span className="shimmer">{label}</span>
-      {startedAt && <span className="tabular-nums">· {formatDuration(between(startedAt, null, now))}</span>}
+      <span className="shimmer">Working</span>
+      {since !== undefined && <span className="tabular-nums">· {formatDuration(now - since)}</span>}
+    </div>
+  );
+}
+
+/** Assistant text still being generated, with a caret. */
+function StreamingText({ text }: { text: string }) {
+  return (
+    <div className="streaming">
+      <Markdown text={text} />
     </div>
   );
 }
@@ -167,15 +176,17 @@ export function Transcript({
   turns,
   messages,
   streamErrors,
+  partials,
+  sentAt,
   pending,
-  harness,
   onRetry,
 }: {
   turns: TurnSummary[];
   messages: Record<string, Message[]>;
   streamErrors: Record<string, string>;
-  pending: { prompt: string } | null;
-  harness: HarnessId;
+  partials: Record<string, PartialText[]>;
+  sentAt: Record<string, number>;
+  pending: { prompt: string; sentAt?: number } | null;
   onRetry?: (prompt: string) => void;
 }) {
   return (
@@ -192,9 +203,17 @@ export function Transcript({
                 Some messages of this turn could not be read: {streamErrors[turn.id]}
               </div>
             )}
+            {running &&
+              (partials[turn.id] ?? [])
+                .filter((p) => !p.parentToolUseId)
+                .map((p) => (
+                  <div key={p.streamId} className="mt-4">
+                    <StreamingText text={p.text} />
+                  </div>
+                ))}
             <div className="mt-4">
               {running ? (
-                <WorkingIndicator startedAt={turn.startedAt} />
+                <WorkingIndicator since={sentAt[turn.id] ?? Date.parse(turn.startedAt)} />
               ) : (
                 <ItemView item={items[items.length - 1]} onRetry={onRetry} />
               )}
@@ -205,7 +224,7 @@ export function Transcript({
       {pending && (
         <section className="space-y-4">
           <UserBubble text={pending.prompt} pending />
-          <WorkingIndicator label={`Starting ${harnessLabel[harness]}`} />
+          <WorkingIndicator since={pending.sentAt} />
         </section>
       )}
     </div>

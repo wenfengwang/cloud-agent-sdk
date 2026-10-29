@@ -35,6 +35,8 @@ var (
 // Messages and tools.
 type (
 	Message    = cloudagent.Message
+	Event      = cloudagent.Event
+	Delta      = cloudagent.Delta
 	Kind       = cloudagent.Kind
 	Text       = cloudagent.Text
 	ToolCall   = cloudagent.ToolCall
@@ -98,7 +100,7 @@ type Runtime interface {
 // Turn is the part of cloudagent.Turn the backend uses.
 type Turn interface {
 	ID() string
-	Messages() iter.Seq2[Message, error]
+	Events() iter.Seq2[Event, error]
 	Result() (Result, error)
 	Terminate() error
 }

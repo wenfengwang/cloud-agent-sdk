@@ -406,15 +406,21 @@ func (s *Store) StartTurn(id, prompt string) (wire.TurnSummary, error) {
 	return rec.Summary(), nil
 }
 
-// record is the turn's recorder: the only reader of turn.Messages().
+// record is the turn's recorder: the only reader of turn.Events().
 func (s *Store) record(sess *session, rec *Record, turn sdk.Turn, cancel context.CancelFunc) {
 	defer close(rec.done)
-	for m, err := range turn.Messages() {
+	for e, err := range turn.Events() {
 		if err != nil {
 			rec.fail(err.Error())
 			break
 		}
-		rec.append(s.cfg.Converter.Message(m, s.cfg.Now()))
+		if e.Delta != nil {
+			rec.delta(*e.Delta)
+			continue
+		}
+		m := s.cfg.Converter.Message(*e.Message, s.cfg.Now())
+		m.StreamID = e.StreamID
+		rec.append(m)
 	}
 
 	res, err := turn.Result()
@@ -621,7 +627,12 @@ func (s *Store) Messages(sessionID, turnID string) (wire.MessageList, error) {
 	if !final {
 		return wire.MessageList{}, fail(CodeTurnRunning, "the turn is still running")
 	}
-	list := wire.MessageList{Messages: append([]wire.Message{}, msgs...)}
+	// History never refers to streams.
+	list := wire.MessageList{Messages: make([]wire.Message, len(msgs))}
+	for i, m := range msgs {
+		m.StreamID = ""
+		list.Messages[i] = m
+	}
 	if e := rec.IterErr(); e != "" {
 		list.Error = &wire.ErrorMessage{Message: e}
 	}

@@ -1,6 +1,6 @@
 ---
 title: "Demo Architecture"
-description: "A localhost-only gin backend that holds one cloudagent AgentRuntime per session in memory, records each turn's turn.Messages() once, multiplexes recorded messages and session changes over one SSE stream per browser tab, and surfaces every SDK v1 gap as a named capability."
+description: "A localhost-only gin backend that holds one cloudagent AgentRuntime per session in memory, records each turn's turn.Events() once, streams assistant text as it is generated, multiplexes recorded messages and session changes over one SSE stream per browser tab, and surfaces every SDK v1 gap as a named capability."
 number: "001"
 status: current
 supersedes: ""
@@ -24,7 +24,7 @@ A desktop coding app is the most demanding realistic consumer: it needs sessions
 
 1. One gin backend, bound to loopback only, holds sessions in memory. A session is one `AgentRuntime` with a fixed harness, WorkDir, and model.
 2. JSON endpoints create, list, inspect, and delete sessions and start and stop turns.
-3. One recorder goroutine per turn ranges `turn.Messages()` once, stamps each message, and keeps the turn's message record. Live delivery, reconnect replay, and history are all served from that record.
+3. One recorder goroutine per turn ranges `turn.Events()` once, stamps each message, keeps the turn's message record, and keeps the text of each assistant message still being streamed. Live delivery, reconnect replay, and history are all served from that record.
 4. Each browser tab holds one SSE stream that carries session changes and the messages of the turns the tab subscribed to.
 5. Messages cross the wire as the demo's own camelCase DTOs, built by a type switch over the SDK types.
 6. Stop maps to `Terminate`, or to cancelling the turn's context while the turn is still starting. Deleting a session and shutting down the server both call `Close`, and cancel a turn that is still starting.
@@ -61,11 +61,12 @@ sequenceDiagram
     UI->>API: POST /api/sessions/{id}/turns {prompt}
     API->>SDK: agent.Turn(context.WithCancel(Background), prompt)
     SDK-->>API: *Turn (after the harness accepted the prompt)
-    API->>API: start recorder: range turn.Messages(), then turn.Result()
+    API->>API: start recorder: range turn.Events(), then turn.Result()
     API-->>UI: 201 TurnSummary
     UI->>API: POST /api/events/{connectionId}/subscriptions {turnId}
-    loop recorded and new messages
+    loop recorded and new messages, and streamed text
         API-->>UI: event: message {turnId, message}
+        API-->>UI: event: message.partial {turnId, streamId, text}
     end
     API-->>UI: event: turn.ended (after Result returned)
 ```
@@ -82,9 +83,10 @@ sequenceDiagram
 | Turn context | `context.WithCancel(context.Background())` per turn, never the request context |
 | Active turn | At most one per session, guarded by the backend's state machine and enforced by the SDK |
 | Turn end signal | The backend's `turn.ended` event, published only after `Result` returns |
-| Message source | One recorder per turn ranges `turn.Messages()` once; every other reader uses the turn's record |
+| Message source | One recorder per turn ranges `turn.Events()` once; every other reader uses the turn's record |
 | Message transport | One SSE stream per browser tab, multiplexing session events and subscribed turns; replay position is an explicit `afterMessageId` per subscription |
 | Ended-turn history | JSON, from the turn's record; the demo never reads messages back from the harness home |
+| Streamed text | The record keeps each open stream's accumulated text; subscribers receive it as `message.partial` snapshots, coalesced, and the completing message replaces it |
 | Wire format | The demo's own DTOs; `Raw` only with `--debug-raw` |
 | Harness home | Isolated demo homes under `~/.cloudagent-demo/homes/` by default, with the user's Codex provider configuration copied in on creation; the user's real homes only with `--home-mode user` |
 | Harness binaries | Found on `PATH`; `--harness-bin-dir` is prepended to `PATH` at startup |
@@ -109,7 +111,7 @@ The SDK has no API to list agents, reopen one by ID, or list a runtime's turns (
 
 ### Why one recorder per turn
 
-The SDK lets any number of readers range `Messages()` concurrently, and replays from the first message on each call ([Turn](../../design/001-core-api.md#turn)). Ranging it once per SSE connection would still leave two problems: timestamps would differ per reader, an iteration cannot be cancelled when a browser goes away (gap `cancellable-messages`). One recorder per turn gives every reader the same sequence, the same IDs, and the same `receivedAt`, and makes every other wait cancellable because it waits on the demo's own record.
+The SDK lets any number of readers range `Events()` concurrently, and replays from the first message on each call ([Turn](../../design/001-core-api.md#turn)). Ranging it once per SSE connection would still leave two problems: timestamps would differ per reader, an iteration cannot be cancelled when a browser goes away (gap `cancellable-messages`). One recorder per turn gives every reader the same sequence, the same IDs, and the same `receivedAt`, and makes every other wait cancellable because it waits on the demo's own record.
 
 ## Module
 
@@ -284,6 +286,7 @@ Stop is per session, not per turn, because a turn that is still starting has no 
 | `session.upserted` | `SessionSummary` | After any change to a session (created, title set, status changed, turn ended) |
 | `session.deleted` | `{"id": "..."}` | After a session was removed |
 | `message` | `{"turnId": "...", "message": Message}` | Each message of a subscribed turn, in record order |
+| `message.partial` | `{"turnId": "...", "streamId": "...", "parentToolUseId": "...", "text": "..."}` | The accumulated text of an assistant message still being streamed; sent when it grew, at most once per wake of the subscription, and never after the message that completes the stream. `parentToolUseId` is omitted when empty |
 | `stream.error` | `{"turnId": "...", "message": "..."}` | The turn's recorder iteration ended with an error; no further `message` events follow for that turn |
 | `turn.ended` | `TurnSummary` | After `Result` returned; the last event of a subscription, which then ends |
 | comment `: keepalive` | — | Every 15 seconds of silence |
@@ -295,7 +298,7 @@ Events carry no `id:` field, and `Last-Event-ID` is ignored: a connection multip
 | `POST /api/events/{connectionId}/subscriptions` | `{"sessionId": "...", "turnId": "...", "afterMessageId": "..."}` | 204; 404 for an unknown connection, session, or turn |
 | `DELETE /api/events/{connectionId}/subscriptions/{turnId}` | — | 204; a no-op when not subscribed |
 
-A subscription delivers the turn's recorded messages after `afterMessageId` (all of them when it is empty or not in the record), then new ones as the recorder appends them, then `stream.error` if the iteration failed, then `turn.ended`. Subscribing twice to one turn on one connection is a no-op. A connection that ends drops all its subscriptions; after a reconnect the client subscribes again from the last message ID it holds. One SSE connection per tab keeps the demo inside the browser's limit of six HTTP/1.1 connections per host, which loopback without TLS cannot raise with HTTP/2.
+A subscription delivers the turn's recorded messages after `afterMessageId` (all of them when it is empty or not in the record), then new ones as the recorder appends them, each wake followed by a `message.partial` for every open stream whose text grew since this subscription last sent it (so a new subscription first receives the current text of every open stream), then `stream.error` if the iteration failed, then `turn.ended`. A stream the turn left incomplete is dropped when the turn ends; history never contains streamed text. Subscribing twice to one turn on one connection is a no-op. A connection that ends drops all its subscriptions; after a reconnect the client subscribes again from the last message ID it holds. One SSE connection per tab keeps the demo inside the browser's limit of six HTTP/1.1 connections per host, which loopback without TLS cannot raise with HTTP/2.
 
 ## Message DTO
 
@@ -311,6 +314,7 @@ A subscription delivers the turn's recorded messages after `afterMessageId` (all
   "text": "...",
   "toolCall": {"id": "call-id", "tool": "shell", "rawName": "Bash", "input": {"type": "shell", "command": "go test ./...", "description": "Run tests", "timeoutMs": 120000}},
   "toolResult": {"callId": "call-id", "tool": "shell", "isError": false, "output": {"type": "shell", "output": "ok ...", "exitCode": 0}},
+  "streamId": "msg_01:0",
   "truncated": false,
   "raw": {}
 }
@@ -322,6 +326,7 @@ A subscription delivers the turn's recorded messages after `afterMessageId` (all
 | `receivedAt` | When the turn's recorder observed the message; always set, and identical for every reader |
 | `text` | Set for `user`, `assistant`, `reasoning`; may be an empty string for `reasoning` |
 | `toolCall`, `toolResult` | Set for their kinds only; otherwise omitted, never null |
+| `streamId` | The `StreamID` of the deltas this message completes ([Deltas](../../design/001-core-api.md#deltas)); omitted when it was not streamed, and always omitted in history |
 | `raw` | Only with `--debug-raw` |
 | `truncated` | True when any field exceeded 512 KiB. A string field is cut at the limit. An embedded JSON value (`arguments`, MCP `content`, `raw`) is never cut in place; it is replaced by a JSON string holding a preview of its first 512 KiB |
 
@@ -335,7 +340,7 @@ The frontend's TypeScript types mirror this table one to one.
    - `closing` is set: a returned `*Turn` is dropped (no record, no recorder; `Close` is already stopping it and waits for it), and the response is 409 `session_closed`.
    - `Turn` returned an error: the session moves back to `idle`, `cancel` is called, and the response is 409 `start_cancelled` when `stopRequested` is set, otherwise the error mapped per [Errors](#errors).
    - `Turn` returned a `*Turn`: the backend records a `TurnSummary` with status `running`, sets `activeTurnId`, moves to `running`, sets the title if this is the first turn, publishes `session.upserted`, starts the recorder, and returns 201. When `stopRequested` is set the context is already cancelled, so the turn will end `cancelled`; the response is still 201, because a cancel that lands after the harness accepted the prompt cannot make `Turn` fail.
-2. **Recorder.** One goroutine per turn ranges `turn.Messages()` once. For each message it stamps `receivedAt`, converts it to a DTO, appends it to the turn's record under the turn lock, and wakes the record's waiters. An iteration error is stored on the record. It then calls `turn.Result()` once, classifies the outcome, stores it in the `TurnSummary`, calls `cancel`, clears `activeTurnId`, moves the session to `idle` (unless it is `closing`), marks the record final, wakes waiters, and publishes `session.upserted`. A turn runs to its end whether or not any browser is connected.
+2. **Recorder.** One goroutine per turn ranges `turn.Events()` once. For each message it stamps `receivedAt`, converts it to a DTO, appends it to the turn's record under the turn lock, drops the open stream the message completes, and wakes the record's waiters. For each delta it appends the text to its open stream and wakes the waiters. An iteration error is stored on the record. It then calls `turn.Result()` once, classifies the outcome, stores it in the `TurnSummary`, calls `cancel`, clears `activeTurnId`, moves the session to `idle` (unless it is `closing`), drops every open stream, marks the record final, wakes waiters, and publishes `session.upserted`. A turn runs to its end whether or not any browser is connected.
 3. **Subscriptions.** Each subscription has a pump goroutine that reads the record from its position and sends events into the connection's outgoing channel. Every send and every wait selects on the subscription's `done` channel, which is closed when the client unsubscribes, the connection's handler returns, or the server shuts down, so a pump exits as soon as its connection is gone. One writer goroutine per connection writes the outgoing channel to the response, which keeps each turn's events in record order.
 4. **History.** For an ended turn, `GET .../messages` returns the record. The demo never reads a turn back from the harness home.
 5. **Stop.** `POST .../stop` sets `stopRequested` and calls `cancel` when `starting`, calls `turn.Terminate()` when `running`, and returns 202. The final state arrives as `turn.ended`, or as the pending start's 409 `start_cancelled`.
@@ -378,7 +383,6 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 | `voice` | Voice input | Voice input is not part of the SDK. | Visible |
 | `cloud` | Cloud environments | The SDK runs harnesses on this machine. | Visible |
 | `search` | Searching sessions | Searching needs an SDK transcript query API. | Visible |
-| `streaming-text` | Typewriter text | Messages arrive complete, without deltas. | Visible: working indicator |
 | `plan` | Plan and task checklists | Plan and task items are not part of the message model. | Visible: task tools render as unknown tool cards |
 | `steering` | Queueing, steering, edit and resend, rollback, fork | A turn cannot take input while it runs, and history cannot be edited. | Visible: input hint while a turn runs |
 | `slash-commands` | Slash commands, hooks, custom tools, skills, MCP configuration | Not part of the SDK. | Visible |
@@ -389,7 +393,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 | `timestamps` | Message times, turn duration | Messages and results carry no timestamps. | Backend: recorder receive time |
 | `changed-files` | Changed-files summary, review pane | The SDK has no diff API. | Backend: `git diff` |
 | `stop-while-starting` | Stop before the harness accepted the prompt | No turn handle exists until `Turn` returns. | Backend: context cancel |
-| `cancellable-messages` | Clean SSE disconnect | `Messages()` takes no context. | Backend: one recorder per turn |
+| `cancellable-messages` | Clean SSE disconnect | `Events()` takes no context. | Backend: one recorder per turn |
 | `message-encoding` | Wire format | Messages have no canonical JSON encoding. | Backend: DTOs |
 | `harness-status` | Harness availability and version | The SDK has no API for harness availability or version. | Backend: `<cli> --version` |
 | `pinned-versions` | Supported harness versions | The SDK exports no pinned versions. | Backend: `--harness-versions` flag, or empty |
@@ -400,7 +404,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 - The backend imports only the Go SDK package `cloudagent` (`github.com/wenfengwang/cloud-agent-sdk/go`), and only `internal/sdk` imports it.
 - The demo writes no conversation data to disk. Everything it keeps (sessions, prompts, titles, timestamps, turn records) is in memory and derived from requests or SDK calls.
 - No turn runs on a request context; a turn's context is cancelled only by stop, delete, or shutdown while the turn is starting, or after its `Result` returns.
-- `turn.Messages()` is ranged once per turn, by its recorder; every reader is served from the record.
+- `turn.Events()` is ranged once per turn, by its recorder; every reader is served from the record.
 - `turn.ended` is published only after `Result` has returned.
 - Message IDs are the only replay position (`afterMessageId`); positional indexes are never sent to the client.
 - Every runtime is closed on delete and on shutdown.
@@ -420,7 +424,7 @@ This registry is the one owner of gap IDs and reasons. `GET /api/config` serves 
 ## Testing
 
 - **Backend unit tests** run the gin router with `httptest` against fakes of the `internal/sdk` interfaces. They cover every row of [Errors](#errors) and the state machine, including: stop while starting when `Turn` then fails (409 `start_cancelled`) and when it then succeeds (201, turn ends `cancelled`); delete while starting (the start context is cancelled, the pending POST gets 409 `session_closed`, no recorder starts); delete while running; `turn.ended` ordering after `Result`; a non-nil `Terminate` error; and shutdown closing every runtime and cancelling every start.
-- **Event tests** cover subscriptions: `afterMessageId` resumption, an unknown `afterMessageId`, two connections receiving identical `receivedAt` values, `stream.error` followed by `turn.ended`, a second tab learning a running turn from `activeTurnId`, and goroutine count returning to its baseline after a client disconnects and one more message is recorded.
+- **Event tests** cover subscriptions: `afterMessageId` resumption, an unknown `afterMessageId`, two connections receiving identical `receivedAt` values, `stream.error` followed by `turn.ended`, a second tab learning a running turn from `activeTurnId`, `message.partial` snapshots that grow with each delta and stop once the completing message is sent, a late subscriber receiving the current text of an open stream, and goroutine count returning to its baseline after a client disconnects and one more message is recorded.
 - **Wire tests** convert one SDK message per tool type and kind into its DTO and compare it against golden JSON, including truncation of a string field and preview replacement of an embedded JSON value. They construct SDK values through the public types only.
 - **Git tests** run `internal/gitwork` against temporary repositories: worktree add and remove, rollback after a failed `New`, refusal on dirty worktrees, changes against the start commit including untracked files, and an unchanged index afterwards.
 - **Dependency test** fails if any demo package imports the SDK's `core` or anything under it directly.

@@ -28,6 +28,16 @@ type Record struct {
 	iterErr   string
 	final     bool
 	changed   chan struct{} // closed and replaced on every change
+	streams   []*Partial    // open delta streams, in the order they opened
+}
+
+// Partial is the accumulated text of an assistant message still being
+// streamed. Version grows with every delta.
+type Partial struct {
+	StreamID        string
+	ParentToolUseID string
+	Text            string
+	Version         int
 }
 
 func newRecord(id, sessionID, prompt string, startedAt time.Time) *Record {
@@ -56,7 +66,49 @@ func (r *Record) append(m wire.Message) {
 	defer r.mu.Unlock()
 	r.index[m.ID] = len(r.messages)
 	r.messages = append(r.messages, m)
+	if m.StreamID != "" {
+		r.dropStream(m.StreamID)
+	}
 	r.wake()
+}
+
+// delta appends d's text to its open stream.
+func (r *Record) delta(d sdk.Delta) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var p *Partial
+	for _, s := range r.streams {
+		if s.StreamID == d.StreamID {
+			p = s
+		}
+	}
+	if p == nil {
+		p = &Partial{StreamID: d.StreamID, ParentToolUseID: d.ParentToolUseID}
+		r.streams = append(r.streams, p)
+	}
+	p.Text += d.Text
+	p.Version++
+	r.wake()
+}
+
+func (r *Record) dropStream(id string) {
+	for i, s := range r.streams {
+		if s.StreamID == id {
+			r.streams = append(r.streams[:i:i], r.streams[i+1:]...)
+			return
+		}
+	}
+}
+
+// Partials returns a copy of the open streams, in the order they opened.
+func (r *Record) Partials() []Partial {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := make([]Partial, len(r.streams))
+	for i, s := range r.streams {
+		out[i] = *s
+	}
+	return out
 }
 
 func (r *Record) fail(message string) {
@@ -75,6 +127,7 @@ func (r *Record) finalize() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.final = true
+	r.streams = nil // a stream the turn left incomplete is dropped
 	r.wake()
 }
 

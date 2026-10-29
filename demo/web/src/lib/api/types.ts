@@ -141,8 +141,18 @@ export interface Message {
   text?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
+  /** The delta stream this message completes; absent when it was not streamed. */
+  streamId?: string;
   truncated: boolean;
   raw?: unknown;
+}
+
+/** The accumulated text of an assistant message still being streamed. */
+export interface PartialText {
+  turnId: string;
+  streamId: string;
+  parentToolUseId?: string;
+  text: string;
 }
 
 export interface MessageList {

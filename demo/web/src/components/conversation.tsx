@@ -137,8 +137,9 @@ export function Conversation({ sessionId }: { sessionId: string }) {
                   turns={state.turns}
                   messages={state.messages}
                   streamErrors={state.streamErrors}
+                  partials={state.partials}
+                  sentAt={state.sentAt}
                   pending={state.pending}
-                  harness={harness}
                   onRetry={locked ? undefined : (p) => send(p)}
                 />
               </WorkDirContext>

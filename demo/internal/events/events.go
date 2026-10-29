@@ -240,6 +240,7 @@ func (h *Hub) pump(c *conn, rec *session.Record, done chan struct{}, pos int) {
 		}
 		return false
 	}
+	sent := map[string]int{} // stream ID -> version last sent
 	for {
 		msgs, final, wake := rec.Since(pos)
 		for _, m := range msgs {
@@ -248,6 +249,18 @@ func (h *Hub) pump(c *conn, rec *session.Record, done chan struct{}, pos int) {
 			}
 		}
 		pos += len(msgs)
+		// Snapshots of open streams that grew. A completed stream is gone
+		// from the record together with the append of its message, so no
+		// snapshot follows the message.
+		for _, p := range rec.Partials() {
+			if p.Version <= sent[p.StreamID] {
+				continue
+			}
+			sent[p.StreamID] = p.Version
+			if !send(event{name: "message.partial", data: partialEvent{TurnID: rec.ID(), StreamID: p.StreamID, ParentToolUseID: p.ParentToolUseID, Text: p.Text}}) {
+				return
+			}
+		}
 		if final {
 			if e := rec.IterErr(); e != "" {
 				if !send(event{name: "stream.error", data: map[string]string{"turnId": rec.ID(), "message": e}}) {
@@ -267,6 +280,13 @@ func (h *Hub) pump(c *conn, rec *session.Record, done chan struct{}, pos int) {
 			return
 		}
 	}
+}
+
+type partialEvent struct {
+	TurnID          string `json:"turnId"`
+	StreamID        string `json:"streamId"`
+	ParentToolUseID string `json:"parentToolUseId,omitempty"`
+	Text            string `json:"text"`
 }
 
 type messageEvent struct {
